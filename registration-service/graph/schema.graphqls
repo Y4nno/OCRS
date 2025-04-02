@@ -1,0 +1,34 @@
+type Registration {
+  id: ID!
+  studentId: String!
+  courseId: String!
+  term: String!
+  grade: Float
+  status: String!
+  enrolledAt: String!
+  updatedAt: String!
+}
+
+type Query {
+  registrations: [Registration!]!
+  registration(id: ID!): Registration
+}
+
+type Mutation {
+  createRegistration(input: RegistrationInput!): Registration!
+  updateRegistration(id: ID!, input: RegistrationInput!): Registration!
+  deleteRegistration(id: ID!): DeleteResponse!
+}
+
+input RegistrationInput {
+  studentId: String!
+  courseId: String!
+  term: String!
+  grade: Float
+  status: String!
+}
+
+type DeleteResponse {
+  success: Boolean!
+  message: String!
+}
