@@ -1,0 +1,71 @@
+# graph/schema.graphqls
+
+enum DayEnum {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+type Course {
+  id: ID!
+  name: String!
+  price: Float!
+  schedules: [Schedule]
+  subjects: [Subject]
+  teachers: [Teacher]
+}
+
+type Enrollment {
+  id: ID!
+  userId: Int!
+  course: Course!
+  enrolledAt: String!
+}
+
+type Subject {
+  id: ID!
+  name: String!
+  description: String
+}
+
+type Teacher {
+  id: ID!
+  name: String!
+  email: String!
+  specialization: String
+  courses: [Course]
+}
+
+type Schedule {
+  id: ID!
+  course: Course!
+  startTime: String!
+  endTime: String!
+  days: [ScheduleDay]
+}
+
+type ScheduleDay {
+  schedule: Schedule!
+  day: DayEnum!
+}
+
+type Query {
+  courses: [Course]
+  course(id: ID!): Course
+  enrollments: [Enrollment]
+  subjects: [Subject]
+  teachers: [Teacher]
+  schedules: [Schedule]
+}
+
+type Mutation {
+  createCourse(name: String!, price: Float!): Course!
+  enrollUser(userId: Int!, courseId: ID!): Enrollment!
+  createSubject(name: String!, description: String): Subject!
+  createTeacher(name: String!, email: String!, specialization: String): Teacher!
+  createSchedule(courseId: ID!, startTime: String!, endTime: String!): Schedule!
+}
