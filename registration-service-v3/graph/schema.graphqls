@@ -1,0 +1,36 @@
+type Registration {
+  id: ID!
+  studentID: String!
+  courseID: String!
+  term: String!
+  grade: String!
+  status: String!
+  enrolledAt: String!
+  updatedAt: String!
+}
+
+type Mutation {
+  createRegistration(
+    studentID: String!,
+    courseID: String!,
+    term: String!,
+    grade: String,
+    status: String!
+  ): Registration!
+
+  updateRegistration(
+    id: ID!,
+    studentID: String!,
+    courseID: String!,
+    term: String!,
+    grade: String,
+    status: String!
+  ): Registration!
+
+  deleteRegistration(id: ID!): Boolean
+}
+
+type Query {
+  registration(id: ID!): Registration
+  registrations: [Registration]
+}
