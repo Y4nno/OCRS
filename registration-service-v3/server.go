@@ -27,7 +27,7 @@ func main() {
 		port = defaultPort
 	}
 
-	dsn := "postgres://postgres:admin@localhost:5432/registration_service?sslmode=disable"
+	dsn := "postgres://postgres:mypass@localhost:5432/registration_service?sslmode=disable"
 	var err error
 	db, err = sql.Open("postgres", dsn)
 	if err != nil {

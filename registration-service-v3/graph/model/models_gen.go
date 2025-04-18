@@ -12,8 +12,6 @@ type Registration struct {
 	ID         string `json:"id"`
 	StudentID  string `json:"studentID"`
 	CourseID   string `json:"courseID"`
-	Term       string `json:"term"`
-	Grade      string `json:"grade"`
 	Status     string `json:"status"`
 	EnrolledAt string `json:"enrolledAt"`
 	UpdatedAt  string `json:"updatedAt"`

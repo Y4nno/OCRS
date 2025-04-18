@@ -2,8 +2,6 @@ type Registration {
   id: ID!
   studentID: String!
   courseID: String!
-  term: String!
-  grade: String!
   status: String!
   enrolledAt: String!
   updatedAt: String!
@@ -13,8 +11,6 @@ type Mutation {
   createRegistration(
     studentID: String!,
     courseID: String!,
-    term: String!,
-    grade: String,
     status: String!
   ): Registration!
 
@@ -22,8 +18,6 @@ type Mutation {
     id: ID!,
     studentID: String!,
     courseID: String!,
-    term: String!,
-    grade: String,
     status: String!
   ): Registration!
 

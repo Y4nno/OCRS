@@ -48,9 +48,9 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		CreateRegistration func(childComplexity int, studentID string, courseID string, term string, grade *string, status string) int
+		CreateRegistration func(childComplexity int, studentID string, courseID string, status string) int
 		DeleteRegistration func(childComplexity int, id string) int
-		UpdateRegistration func(childComplexity int, id string, studentID string, courseID string, term string, grade *string, status string) int
+		UpdateRegistration func(childComplexity int, id string, studentID string, courseID string, status string) int
 	}
 
 	Query struct {
@@ -61,18 +61,16 @@ type ComplexityRoot struct {
 	Registration struct {
 		CourseID   func(childComplexity int) int
 		EnrolledAt func(childComplexity int) int
-		Grade      func(childComplexity int) int
 		ID         func(childComplexity int) int
 		Status     func(childComplexity int) int
 		StudentID  func(childComplexity int) int
-		Term       func(childComplexity int) int
 		UpdatedAt  func(childComplexity int) int
 	}
 }
 
 type MutationResolver interface {
-	CreateRegistration(ctx context.Context, studentID string, courseID string, term string, grade *string, status string) (*model.Registration, error)
-	UpdateRegistration(ctx context.Context, id string, studentID string, courseID string, term string, grade *string, status string) (*model.Registration, error)
+	CreateRegistration(ctx context.Context, studentID string, courseID string, status string) (*model.Registration, error)
+	UpdateRegistration(ctx context.Context, id string, studentID string, courseID string, status string) (*model.Registration, error)
 	DeleteRegistration(ctx context.Context, id string) (*bool, error)
 }
 type QueryResolver interface {
@@ -109,7 +107,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateRegistration(childComplexity, args["studentID"].(string), args["courseID"].(string), args["term"].(string), args["grade"].(*string), args["status"].(string)), true
+		return e.complexity.Mutation.CreateRegistration(childComplexity, args["studentID"].(string), args["courseID"].(string), args["status"].(string)), true
 
 	case "Mutation.deleteRegistration":
 		if e.complexity.Mutation.DeleteRegistration == nil {
@@ -133,7 +131,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateRegistration(childComplexity, args["id"].(string), args["studentID"].(string), args["courseID"].(string), args["term"].(string), args["grade"].(*string), args["status"].(string)), true
+		return e.complexity.Mutation.UpdateRegistration(childComplexity, args["id"].(string), args["studentID"].(string), args["courseID"].(string), args["status"].(string)), true
 
 	case "Query.registration":
 		if e.complexity.Query.Registration == nil {
@@ -168,13 +166,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Registration.EnrolledAt(childComplexity), true
 
-	case "Registration.grade":
-		if e.complexity.Registration.Grade == nil {
-			break
-		}
-
-		return e.complexity.Registration.Grade(childComplexity), true
-
 	case "Registration.id":
 		if e.complexity.Registration.ID == nil {
 			break
@@ -195,13 +186,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Registration.StudentID(childComplexity), true
-
-	case "Registration.term":
-		if e.complexity.Registration.Term == nil {
-			break
-		}
-
-		return e.complexity.Registration.Term(childComplexity), true
 
 	case "Registration.updatedAt":
 		if e.complexity.Registration.UpdatedAt == nil {
@@ -346,21 +330,11 @@ func (ec *executionContext) field_Mutation_createRegistration_args(ctx context.C
 		return nil, err
 	}
 	args["courseID"] = arg1
-	arg2, err := ec.field_Mutation_createRegistration_argsTerm(ctx, rawArgs)
+	arg2, err := ec.field_Mutation_createRegistration_argsStatus(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["term"] = arg2
-	arg3, err := ec.field_Mutation_createRegistration_argsGrade(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["grade"] = arg3
-	arg4, err := ec.field_Mutation_createRegistration_argsStatus(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["status"] = arg4
+	args["status"] = arg2
 	return args, nil
 }
 func (ec *executionContext) field_Mutation_createRegistration_argsStudentID(
@@ -386,32 +360,6 @@ func (ec *executionContext) field_Mutation_createRegistration_argsCourseID(
 	}
 
 	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_createRegistration_argsTerm(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("term"))
-	if tmp, ok := rawArgs["term"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_createRegistration_argsGrade(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*string, error) {
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("grade"))
-	if tmp, ok := rawArgs["grade"]; ok {
-		return ec.unmarshalOString2ᚖstring(ctx, tmp)
-	}
-
-	var zeroVal *string
 	return zeroVal, nil
 }
 
@@ -469,21 +417,11 @@ func (ec *executionContext) field_Mutation_updateRegistration_args(ctx context.C
 		return nil, err
 	}
 	args["courseID"] = arg2
-	arg3, err := ec.field_Mutation_updateRegistration_argsTerm(ctx, rawArgs)
+	arg3, err := ec.field_Mutation_updateRegistration_argsStatus(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["term"] = arg3
-	arg4, err := ec.field_Mutation_updateRegistration_argsGrade(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["grade"] = arg4
-	arg5, err := ec.field_Mutation_updateRegistration_argsStatus(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["status"] = arg5
+	args["status"] = arg3
 	return args, nil
 }
 func (ec *executionContext) field_Mutation_updateRegistration_argsID(
@@ -522,32 +460,6 @@ func (ec *executionContext) field_Mutation_updateRegistration_argsCourseID(
 	}
 
 	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_updateRegistration_argsTerm(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("term"))
-	if tmp, ok := rawArgs["term"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_updateRegistration_argsGrade(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (*string, error) {
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("grade"))
-	if tmp, ok := rawArgs["grade"]; ok {
-		return ec.unmarshalOString2ᚖstring(ctx, tmp)
-	}
-
-	var zeroVal *string
 	return zeroVal, nil
 }
 
@@ -724,7 +636,7 @@ func (ec *executionContext) _Mutation_createRegistration(ctx context.Context, fi
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateRegistration(rctx, fc.Args["studentID"].(string), fc.Args["courseID"].(string), fc.Args["term"].(string), fc.Args["grade"].(*string), fc.Args["status"].(string))
+		return ec.resolvers.Mutation().CreateRegistration(rctx, fc.Args["studentID"].(string), fc.Args["courseID"].(string), fc.Args["status"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -755,10 +667,6 @@ func (ec *executionContext) fieldContext_Mutation_createRegistration(ctx context
 				return ec.fieldContext_Registration_studentID(ctx, field)
 			case "courseID":
 				return ec.fieldContext_Registration_courseID(ctx, field)
-			case "term":
-				return ec.fieldContext_Registration_term(ctx, field)
-			case "grade":
-				return ec.fieldContext_Registration_grade(ctx, field)
 			case "status":
 				return ec.fieldContext_Registration_status(ctx, field)
 			case "enrolledAt":
@@ -797,7 +705,7 @@ func (ec *executionContext) _Mutation_updateRegistration(ctx context.Context, fi
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateRegistration(rctx, fc.Args["id"].(string), fc.Args["studentID"].(string), fc.Args["courseID"].(string), fc.Args["term"].(string), fc.Args["grade"].(*string), fc.Args["status"].(string))
+		return ec.resolvers.Mutation().UpdateRegistration(rctx, fc.Args["id"].(string), fc.Args["studentID"].(string), fc.Args["courseID"].(string), fc.Args["status"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -828,10 +736,6 @@ func (ec *executionContext) fieldContext_Mutation_updateRegistration(ctx context
 				return ec.fieldContext_Registration_studentID(ctx, field)
 			case "courseID":
 				return ec.fieldContext_Registration_courseID(ctx, field)
-			case "term":
-				return ec.fieldContext_Registration_term(ctx, field)
-			case "grade":
-				return ec.fieldContext_Registration_grade(ctx, field)
 			case "status":
 				return ec.fieldContext_Registration_status(ctx, field)
 			case "enrolledAt":
@@ -950,10 +854,6 @@ func (ec *executionContext) fieldContext_Query_registration(ctx context.Context,
 				return ec.fieldContext_Registration_studentID(ctx, field)
 			case "courseID":
 				return ec.fieldContext_Registration_courseID(ctx, field)
-			case "term":
-				return ec.fieldContext_Registration_term(ctx, field)
-			case "grade":
-				return ec.fieldContext_Registration_grade(ctx, field)
 			case "status":
 				return ec.fieldContext_Registration_status(ctx, field)
 			case "enrolledAt":
@@ -1020,10 +920,6 @@ func (ec *executionContext) fieldContext_Query_registrations(_ context.Context, 
 				return ec.fieldContext_Registration_studentID(ctx, field)
 			case "courseID":
 				return ec.fieldContext_Registration_courseID(ctx, field)
-			case "term":
-				return ec.fieldContext_Registration_term(ctx, field)
-			case "grade":
-				return ec.fieldContext_Registration_grade(ctx, field)
 			case "status":
 				return ec.fieldContext_Registration_status(ctx, field)
 			case "enrolledAt":
@@ -1288,94 +1184,6 @@ func (ec *executionContext) _Registration_courseID(ctx context.Context, field gr
 }
 
 func (ec *executionContext) fieldContext_Registration_courseID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Registration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Registration_term(ctx context.Context, field graphql.CollectedField, obj *model.Registration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Registration_term(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Term, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Registration_term(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Registration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Registration_grade(ctx context.Context, field graphql.CollectedField, obj *model.Registration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Registration_grade(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Grade, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Registration_grade(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Registration",
 		Field:      field,
@@ -3650,16 +3458,6 @@ func (ec *executionContext) _Registration(ctx context.Context, sel ast.Selection
 			}
 		case "courseID":
 			out.Values[i] = ec._Registration_courseID(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "term":
-			out.Values[i] = ec._Registration_term(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "grade":
-			out.Values[i] = ec._Registration_grade(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
