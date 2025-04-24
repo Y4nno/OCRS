@@ -48,9 +48,10 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		CreateRegistration func(childComplexity int, studentID string, courseID string, status string) int
-		DeleteRegistration func(childComplexity int, id string) int
-		UpdateRegistration func(childComplexity int, id string, studentID string, courseID string, status string) int
+		CreateRegistration  func(childComplexity int, studentID string, courseID string, status *model.RegistrationStatus) int
+		CreateRegistrations func(childComplexity int, studentID string, courseIDs []string, status *model.RegistrationStatus) int
+		DeleteRegistration  func(childComplexity int, id string) int
+		UpdateRegistration  func(childComplexity int, id string, studentID string, courseID string, status model.RegistrationStatus) int
 	}
 
 	Query struct {
@@ -66,11 +67,17 @@ type ComplexityRoot struct {
 		StudentID  func(childComplexity int) int
 		UpdatedAt  func(childComplexity int) int
 	}
+
+	RegistrationBatchResult struct {
+		Created          func(childComplexity int) int
+		SkippedCourseIDs func(childComplexity int) int
+	}
 }
 
 type MutationResolver interface {
-	CreateRegistration(ctx context.Context, studentID string, courseID string, status string) (*model.Registration, error)
-	UpdateRegistration(ctx context.Context, id string, studentID string, courseID string, status string) (*model.Registration, error)
+	CreateRegistration(ctx context.Context, studentID string, courseID string, status *model.RegistrationStatus) (*model.Registration, error)
+	CreateRegistrations(ctx context.Context, studentID string, courseIDs []string, status *model.RegistrationStatus) (*model.RegistrationBatchResult, error)
+	UpdateRegistration(ctx context.Context, id string, studentID string, courseID string, status model.RegistrationStatus) (*model.Registration, error)
 	DeleteRegistration(ctx context.Context, id string) (*bool, error)
 }
 type QueryResolver interface {
@@ -107,7 +114,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateRegistration(childComplexity, args["studentID"].(string), args["courseID"].(string), args["status"].(string)), true
+		return e.complexity.Mutation.CreateRegistration(childComplexity, args["studentID"].(string), args["courseID"].(string), args["status"].(*model.RegistrationStatus)), true
+
+	case "Mutation.createRegistrations":
+		if e.complexity.Mutation.CreateRegistrations == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createRegistrations_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateRegistrations(childComplexity, args["studentID"].(string), args["courseIDs"].([]string), args["status"].(*model.RegistrationStatus)), true
 
 	case "Mutation.deleteRegistration":
 		if e.complexity.Mutation.DeleteRegistration == nil {
@@ -131,7 +150,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateRegistration(childComplexity, args["id"].(string), args["studentID"].(string), args["courseID"].(string), args["status"].(string)), true
+		return e.complexity.Mutation.UpdateRegistration(childComplexity, args["id"].(string), args["studentID"].(string), args["courseID"].(string), args["status"].(model.RegistrationStatus)), true
 
 	case "Query.registration":
 		if e.complexity.Query.Registration == nil {
@@ -193,6 +212,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Registration.UpdatedAt(childComplexity), true
+
+	case "RegistrationBatchResult.created":
+		if e.complexity.RegistrationBatchResult.Created == nil {
+			break
+		}
+
+		return e.complexity.RegistrationBatchResult.Created(childComplexity), true
+
+	case "RegistrationBatchResult.skippedCourseIDs":
+		if e.complexity.RegistrationBatchResult.SkippedCourseIDs == nil {
+			break
+		}
+
+		return e.complexity.RegistrationBatchResult.SkippedCourseIDs(childComplexity), true
 
 	}
 	return 0, false
@@ -366,13 +399,72 @@ func (ec *executionContext) field_Mutation_createRegistration_argsCourseID(
 func (ec *executionContext) field_Mutation_createRegistration_argsStatus(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (string, error) {
+) (*model.RegistrationStatus, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
 	if tmp, ok := rawArgs["status"]; ok {
+		return ec.unmarshalORegistrationStatus2ᚖregistrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistrationStatus(ctx, tmp)
+	}
+
+	var zeroVal *model.RegistrationStatus
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_createRegistrations_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_createRegistrations_argsStudentID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["studentID"] = arg0
+	arg1, err := ec.field_Mutation_createRegistrations_argsCourseIDs(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["courseIDs"] = arg1
+	arg2, err := ec.field_Mutation_createRegistrations_argsStatus(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["status"] = arg2
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_createRegistrations_argsStudentID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("studentID"))
+	if tmp, ok := rawArgs["studentID"]; ok {
 		return ec.unmarshalNString2string(ctx, tmp)
 	}
 
 	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_createRegistrations_argsCourseIDs(
+	ctx context.Context,
+	rawArgs map[string]any,
+) ([]string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("courseIDs"))
+	if tmp, ok := rawArgs["courseIDs"]; ok {
+		return ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
+	}
+
+	var zeroVal []string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_createRegistrations_argsStatus(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*model.RegistrationStatus, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
+	if tmp, ok := rawArgs["status"]; ok {
+		return ec.unmarshalORegistrationStatus2ᚖregistrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistrationStatus(ctx, tmp)
+	}
+
+	var zeroVal *model.RegistrationStatus
 	return zeroVal, nil
 }
 
@@ -466,13 +558,13 @@ func (ec *executionContext) field_Mutation_updateRegistration_argsCourseID(
 func (ec *executionContext) field_Mutation_updateRegistration_argsStatus(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (string, error) {
+) (model.RegistrationStatus, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
 	if tmp, ok := rawArgs["status"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
+		return ec.unmarshalNRegistrationStatus2registrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistrationStatus(ctx, tmp)
 	}
 
-	var zeroVal string
+	var zeroVal model.RegistrationStatus
 	return zeroVal, nil
 }
 
@@ -636,7 +728,7 @@ func (ec *executionContext) _Mutation_createRegistration(ctx context.Context, fi
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateRegistration(rctx, fc.Args["studentID"].(string), fc.Args["courseID"].(string), fc.Args["status"].(string))
+		return ec.resolvers.Mutation().CreateRegistration(rctx, fc.Args["studentID"].(string), fc.Args["courseID"].(string), fc.Args["status"].(*model.RegistrationStatus))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -691,6 +783,67 @@ func (ec *executionContext) fieldContext_Mutation_createRegistration(ctx context
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_createRegistrations(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_createRegistrations(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateRegistrations(rctx, fc.Args["studentID"].(string), fc.Args["courseIDs"].([]string), fc.Args["status"].(*model.RegistrationStatus))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.RegistrationBatchResult)
+	fc.Result = res
+	return ec.marshalNRegistrationBatchResult2ᚖregistrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistrationBatchResult(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createRegistrations(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "created":
+				return ec.fieldContext_RegistrationBatchResult_created(ctx, field)
+			case "skippedCourseIDs":
+				return ec.fieldContext_RegistrationBatchResult_skippedCourseIDs(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RegistrationBatchResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createRegistrations_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_updateRegistration(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_updateRegistration(ctx, field)
 	if err != nil {
@@ -705,7 +858,7 @@ func (ec *executionContext) _Mutation_updateRegistration(ctx context.Context, fi
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateRegistration(rctx, fc.Args["id"].(string), fc.Args["studentID"].(string), fc.Args["courseID"].(string), fc.Args["status"].(string))
+		return ec.resolvers.Mutation().UpdateRegistration(rctx, fc.Args["id"].(string), fc.Args["studentID"].(string), fc.Args["courseID"].(string), fc.Args["status"].(model.RegistrationStatus))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1222,9 +1375,9 @@ func (ec *executionContext) _Registration_status(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.RegistrationStatus)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNRegistrationStatus2registrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistrationStatus(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Registration_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1234,7 +1387,7 @@ func (ec *executionContext) fieldContext_Registration_status(_ context.Context, 
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type RegistrationStatus does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1318,6 +1471,108 @@ func (ec *executionContext) _Registration_updatedAt(ctx context.Context, field g
 func (ec *executionContext) fieldContext_Registration_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Registration",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RegistrationBatchResult_created(ctx context.Context, field graphql.CollectedField, obj *model.RegistrationBatchResult) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_RegistrationBatchResult_created(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Created, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Registration)
+	fc.Result = res
+	return ec.marshalNRegistration2ᚕᚖregistrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistrationᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_RegistrationBatchResult_created(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RegistrationBatchResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Registration_id(ctx, field)
+			case "studentID":
+				return ec.fieldContext_Registration_studentID(ctx, field)
+			case "courseID":
+				return ec.fieldContext_Registration_courseID(ctx, field)
+			case "status":
+				return ec.fieldContext_Registration_status(ctx, field)
+			case "enrolledAt":
+				return ec.fieldContext_Registration_enrolledAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Registration_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Registration", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RegistrationBatchResult_skippedCourseIDs(ctx context.Context, field graphql.CollectedField, obj *model.RegistrationBatchResult) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_RegistrationBatchResult_skippedCourseIDs(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SkippedCourseIDs, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_RegistrationBatchResult_skippedCourseIDs(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RegistrationBatchResult",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -3313,6 +3568,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "createRegistrations":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createRegistrations(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "updateRegistration":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateRegistration(ctx, field)
@@ -3473,6 +3735,50 @@ func (ec *executionContext) _Registration(ctx context.Context, sel ast.Selection
 			}
 		case "updatedAt":
 			out.Values[i] = ec._Registration_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var registrationBatchResultImplementors = []string{"RegistrationBatchResult"}
+
+func (ec *executionContext) _RegistrationBatchResult(ctx context.Context, sel ast.SelectionSet, obj *model.RegistrationBatchResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, registrationBatchResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RegistrationBatchResult")
+		case "created":
+			out.Values[i] = ec._RegistrationBatchResult_created(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "skippedCourseIDs":
+			out.Values[i] = ec._RegistrationBatchResult_skippedCourseIDs(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -3868,6 +4174,50 @@ func (ec *executionContext) marshalNRegistration2registrationᚗmodᚋregistrati
 	return ec._Registration(ctx, sel, &v)
 }
 
+func (ec *executionContext) marshalNRegistration2ᚕᚖregistrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistrationᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Registration) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNRegistration2ᚖregistrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistration(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) marshalNRegistration2ᚖregistrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistration(ctx context.Context, sel ast.SelectionSet, v *model.Registration) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -3876,6 +4226,30 @@ func (ec *executionContext) marshalNRegistration2ᚖregistrationᚗmodᚋregistr
 		return graphql.Null
 	}
 	return ec._Registration(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNRegistrationBatchResult2registrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistrationBatchResult(ctx context.Context, sel ast.SelectionSet, v model.RegistrationBatchResult) graphql.Marshaler {
+	return ec._RegistrationBatchResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRegistrationBatchResult2ᚖregistrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistrationBatchResult(ctx context.Context, sel ast.SelectionSet, v *model.RegistrationBatchResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RegistrationBatchResult(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNRegistrationStatus2registrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistrationStatus(ctx context.Context, v any) (model.RegistrationStatus, error) {
+	var res model.RegistrationStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRegistrationStatus2registrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistrationStatus(ctx context.Context, sel ast.SelectionSet, v model.RegistrationStatus) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
@@ -3891,6 +4265,36 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -4216,6 +4620,22 @@ func (ec *executionContext) marshalORegistration2ᚖregistrationᚗmodᚋregistr
 		return graphql.Null
 	}
 	return ec._Registration(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalORegistrationStatus2ᚖregistrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistrationStatus(ctx context.Context, v any) (*model.RegistrationStatus, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.RegistrationStatus)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalORegistrationStatus2ᚖregistrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistrationStatus(ctx context.Context, sel ast.SelectionSet, v *model.RegistrationStatus) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {

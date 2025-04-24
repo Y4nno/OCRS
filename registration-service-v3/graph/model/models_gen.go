@@ -2,6 +2,12 @@
 
 package model
 
+import (
+	"fmt"
+	"io"
+	"strconv"
+)
+
 type Mutation struct {
 }
 
@@ -9,10 +15,62 @@ type Query struct {
 }
 
 type Registration struct {
-	ID         string `json:"id"`
-	StudentID  string `json:"studentID"`
-	CourseID   string `json:"courseID"`
-	Status     string `json:"status"`
-	EnrolledAt string `json:"enrolledAt"`
-	UpdatedAt  string `json:"updatedAt"`
+	ID         string             `json:"id"`
+	StudentID  string             `json:"studentID"`
+	CourseID   string             `json:"courseID"`
+	Status     RegistrationStatus `json:"status"`
+	EnrolledAt string             `json:"enrolledAt"`
+	UpdatedAt  string             `json:"updatedAt"`
+}
+
+type RegistrationBatchResult struct {
+	Created          []*Registration `json:"created"`
+	SkippedCourseIDs []string        `json:"skippedCourseIDs"`
+}
+
+type RegistrationStatus string
+
+const (
+	RegistrationStatusPending   RegistrationStatus = "pending"
+	RegistrationStatusEnrolled  RegistrationStatus = "enrolled"
+	RegistrationStatusCompleted RegistrationStatus = "completed"
+	RegistrationStatusDropped   RegistrationStatus = "dropped"
+	RegistrationStatusFailed    RegistrationStatus = "failed"
+)
+
+var AllRegistrationStatus = []RegistrationStatus{
+	RegistrationStatusPending,
+	RegistrationStatusEnrolled,
+	RegistrationStatusCompleted,
+	RegistrationStatusDropped,
+	RegistrationStatusFailed,
+}
+
+func (e RegistrationStatus) IsValid() bool {
+	switch e {
+	case RegistrationStatusPending, RegistrationStatusEnrolled, RegistrationStatusCompleted, RegistrationStatusDropped, RegistrationStatusFailed:
+		return true
+	}
+	return false
+}
+
+func (e RegistrationStatus) String() string {
+	return string(e)
+}
+
+func (e *RegistrationStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RegistrationStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid RegistrationStatus", str)
+	}
+	return nil
+}
+
+func (e RegistrationStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }

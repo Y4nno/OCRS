@@ -1,24 +1,43 @@
+enum RegistrationStatus {
+  pending
+  enrolled
+  completed
+  dropped
+  failed
+}
+
 type Registration {
   id: ID!
   studentID: String!
   courseID: String!
-  status: String!
+  status: RegistrationStatus!
   enrolledAt: String!
   updatedAt: String!
 }
 
+type RegistrationBatchResult {
+  created: [Registration!]!
+  skippedCourseIDs: [String!]!
+}
+
 type Mutation {
   createRegistration(
-    studentID: String!,
-    courseID: String!,
-    status: String!
+    studentID: String!
+    courseID: String!
+    status: RegistrationStatus
   ): Registration!
 
+  createRegistrations(
+    studentID: String!
+    courseIDs: [String!]!
+    status: RegistrationStatus
+  ): RegistrationBatchResult!
+
   updateRegistration(
-    id: ID!,
-    studentID: String!,
-    courseID: String!,
-    status: String!
+    id: ID!
+    studentID: String!
+    courseID: String!
+    status: RegistrationStatus!
   ): Registration!
 
   deleteRegistration(id: ID!): Boolean
