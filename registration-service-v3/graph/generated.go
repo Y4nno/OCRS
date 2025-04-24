@@ -51,12 +51,14 @@ type ComplexityRoot struct {
 		CreateRegistration  func(childComplexity int, studentID string, courseID string, status *model.RegistrationStatus) int
 		CreateRegistrations func(childComplexity int, studentID string, courseIDs []string, status *model.RegistrationStatus) int
 		DeleteRegistration  func(childComplexity int, id string) int
+		DropCourse          func(childComplexity int, studentID string, courseID string) int
 		UpdateRegistration  func(childComplexity int, id string, studentID string, courseID string, status model.RegistrationStatus) int
 	}
 
 	Query struct {
-		Registration  func(childComplexity int, id string) int
-		Registrations func(childComplexity int) int
+		Registration           func(childComplexity int, id string) int
+		Registrations          func(childComplexity int) int
+		RegistrationsByStudent func(childComplexity int, studentID string) int
 	}
 
 	Registration struct {
@@ -79,10 +81,12 @@ type MutationResolver interface {
 	CreateRegistrations(ctx context.Context, studentID string, courseIDs []string, status *model.RegistrationStatus) (*model.RegistrationBatchResult, error)
 	UpdateRegistration(ctx context.Context, id string, studentID string, courseID string, status model.RegistrationStatus) (*model.Registration, error)
 	DeleteRegistration(ctx context.Context, id string) (*bool, error)
+	DropCourse(ctx context.Context, studentID string, courseID string) (*model.Registration, error)
 }
 type QueryResolver interface {
 	Registration(ctx context.Context, id string) (*model.Registration, error)
 	Registrations(ctx context.Context) ([]*model.Registration, error)
+	RegistrationsByStudent(ctx context.Context, studentID string) ([]*model.Registration, error)
 }
 
 type executableSchema struct {
@@ -140,6 +144,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.DeleteRegistration(childComplexity, args["id"].(string)), true
 
+	case "Mutation.dropCourse":
+		if e.complexity.Mutation.DropCourse == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_dropCourse_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DropCourse(childComplexity, args["studentID"].(string), args["courseID"].(string)), true
+
 	case "Mutation.updateRegistration":
 		if e.complexity.Mutation.UpdateRegistration == nil {
 			break
@@ -170,6 +186,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Registrations(childComplexity), true
+
+	case "Query.registrationsByStudent":
+		if e.complexity.Query.RegistrationsByStudent == nil {
+			break
+		}
+
+		args, err := ec.field_Query_registrationsByStudent_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.RegistrationsByStudent(childComplexity, args["studentID"].(string)), true
 
 	case "Registration.courseID":
 		if e.complexity.Registration.CourseID == nil {
@@ -491,6 +519,47 @@ func (ec *executionContext) field_Mutation_deleteRegistration_argsID(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation_dropCourse_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_dropCourse_argsStudentID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["studentID"] = arg0
+	arg1, err := ec.field_Mutation_dropCourse_argsCourseID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["courseID"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_dropCourse_argsStudentID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("studentID"))
+	if tmp, ok := rawArgs["studentID"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_dropCourse_argsCourseID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("courseID"))
+	if tmp, ok := rawArgs["courseID"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation_updateRegistration_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -608,6 +677,29 @@ func (ec *executionContext) field_Query_registration_argsID(
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 	if tmp, ok := rawArgs["id"]; ok {
 		return ec.unmarshalNID2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_registrationsByStudent_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_registrationsByStudent_argsStudentID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["studentID"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_registrationsByStudent_argsStudentID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("studentID"))
+	if tmp, ok := rawArgs["studentID"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
 	}
 
 	var zeroVal string
@@ -965,6 +1057,75 @@ func (ec *executionContext) fieldContext_Mutation_deleteRegistration(ctx context
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_dropCourse(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_dropCourse(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DropCourse(rctx, fc.Args["studentID"].(string), fc.Args["courseID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Registration)
+	fc.Result = res
+	return ec.marshalNRegistration2ᚖregistrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistration(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_dropCourse(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Registration_id(ctx, field)
+			case "studentID":
+				return ec.fieldContext_Registration_studentID(ctx, field)
+			case "courseID":
+				return ec.fieldContext_Registration_courseID(ctx, field)
+			case "status":
+				return ec.fieldContext_Registration_status(ctx, field)
+			case "enrolledAt":
+				return ec.fieldContext_Registration_enrolledAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Registration_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Registration", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_dropCourse_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_registration(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_registration(ctx, field)
 	if err != nil {
@@ -1082,6 +1243,75 @@ func (ec *executionContext) fieldContext_Query_registrations(_ context.Context, 
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Registration", field.Name)
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_registrationsByStudent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_registrationsByStudent(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().RegistrationsByStudent(rctx, fc.Args["studentID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Registration)
+	fc.Result = res
+	return ec.marshalNRegistration2ᚕᚖregistrationᚗmodᚋregistrationᚑv3ᚋgraphᚋmodelᚐRegistrationᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_registrationsByStudent(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Registration_id(ctx, field)
+			case "studentID":
+				return ec.fieldContext_Registration_studentID(ctx, field)
+			case "courseID":
+				return ec.fieldContext_Registration_courseID(ctx, field)
+			case "status":
+				return ec.fieldContext_Registration_status(ctx, field)
+			case "enrolledAt":
+				return ec.fieldContext_Registration_enrolledAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Registration_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Registration", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_registrationsByStudent_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -3586,6 +3816,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteRegistration(ctx, field)
 			})
+		case "dropCourse":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_dropCourse(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3657,6 +3894,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_registrations(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "registrationsByStudent":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_registrationsByStudent(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
 				return res
 			}
 

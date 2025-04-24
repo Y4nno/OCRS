@@ -56,6 +56,30 @@ func (r *queryResolver) Registrations(ctx context.Context) ([]*model.Registratio
   return registrations, nil
 }
 
+func (r *queryResolver) RegistrationsByStudent(ctx context.Context, studentID string) ([]*model.Registration, error) {
+  rows, err := r.Resolver.DB.Query(`
+    SELECT id, student_id, course_id, status, enrolled_at, updated_at 
+    FROM registrations 
+    WHERE student_id = $1`, studentID)
+  if err != nil {
+    return nil, fmt.Errorf("failed to query registrations for student %s: %v", studentID, err)
+  }
+  defer rows.Close()
+
+  var registrations []*model.Registration
+  for rows.Next() {
+    var reg model.Registration
+    var status string
+    if err := rows.Scan(&reg.ID, &reg.StudentID, &reg.CourseID, &status, &reg.EnrolledAt, &reg.UpdatedAt); err != nil {
+      return nil, fmt.Errorf("error scanning registration: %v", err)
+    }
+    reg.Status = model.RegistrationStatus(status)
+    registrations = append(registrations, &reg)
+  }
+
+  return registrations, nil
+}
+
 // === MUTATION RESOLVERS ===
 
 func (r *mutationResolver) CreateRegistration(
@@ -207,4 +231,37 @@ func (r *mutationResolver) DeleteRegistration(ctx context.Context, id string) (*
   }
   success := true
   return &success, nil
+}
+
+func (r *mutationResolver) DropCourse(ctx context.Context, studentID string, courseID string) (*model.Registration, error) {
+  updatedAt := time.Now().Format(time.RFC3339)
+
+  result, err := r.Resolver.DB.Exec(`
+    UPDATE registrations
+    SET status = 'dropped', updated_at = $1
+    WHERE student_id = $2 AND course_id = $3 AND status IN ('pending', 'enrolled')`,
+    updatedAt, studentID, courseID)
+  if err != nil {
+    return nil, fmt.Errorf("failed to drop course: %v", err)
+  }
+
+  rowsAffected, _ := result.RowsAffected()
+  if rowsAffected == 0 {
+    return nil, fmt.Errorf("no active registration found to drop for student %s and course %s", studentID, courseID)
+  }
+
+  row := r.Resolver.DB.QueryRow(`
+    SELECT id, student_id, course_id, status, enrolled_at, updated_at
+    FROM registrations 
+    WHERE student_id = $1 AND course_id = $2`, studentID, courseID)
+
+  var reg model.Registration
+  var status string
+  err = row.Scan(&reg.ID, &reg.StudentID, &reg.CourseID, &status, &reg.EnrolledAt, &reg.UpdatedAt)
+  if err != nil {
+    return nil, fmt.Errorf("failed to fetch updated registration: %v", err)
+  }
+
+  reg.Status = model.RegistrationStatus(status)
+  return &reg, nil
 }
