@@ -6,18 +6,123 @@ package graph
 
 import (
 	"context"
+	"crypto/sha256"
+	"database/sql"
+	"encoding/hex"
 	"fmt"
+	"log"
 	"student-service/graph/model"
+	"time"
+
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
-// CreateTodo is the resolver for the createTodo field.
-func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: CreateTodo - createTodo"))
+// hashPassword hashes a password using SHA-256.
+func hashPassword(password string) string {
+	hash := sha256.Sum256([]byte(password))
+	return hex.EncodeToString(hash[:])
 }
 
-// Todos is the resolver for the todos field.
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: Todos - todos"))
+// verifyPassword compares a hashed password with a plain text password.
+func verifyPassword(hashedPassword, password string) bool {
+	return hashedPassword == hashPassword(password)
+}
+
+// Signup handles user registration.
+func (r *mutationResolver) Signup(ctx context.Context, input model.SignupInput) (*model.Student, error) {
+	// Check if the email already exists
+	var exists bool
+	err := r.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM students WHERE email = $1)", input.Email).Scan(&exists)
+	if err != nil {
+		log.Printf("Error checking email existence: %v", err)
+		return nil, fmt.Errorf("internal server error")
+	}
+	if exists {
+		log.Printf("Email already in use: %s", input.Email)
+		return nil, fmt.Errorf("email already in use")
+	}
+
+	// Hash the password
+	hashedPassword := hashPassword(input.Password)
+
+	// Generate UUID and timestamps
+	id := uuid.New()
+	now := time.Now()
+
+	// Insert the user into the database
+	_, err = r.DB.ExecContext(ctx, `
+        INSERT INTO students (id, username, email, phone_number, birthdate, gender, location, bio, interests, hashed_password, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+    `, id, input.Username, input.Email, input.PhoneNumber, input.Birthdate, input.Gender, input.Location, input.Bio, pq.Array(input.Interests), hashedPassword, now, now)
+
+	if err != nil {
+		log.Printf("Error inserting student: %v", err)
+		return nil, fmt.Errorf("failed to create user")
+	}
+
+	// Return the created user
+	log.Printf("User created successfully: %s", input.Email)
+	return &model.Student{
+		ID:          id.String(),
+		Username:    input.Username,
+		Email:       input.Email,
+		PhoneNumber: input.PhoneNumber,
+		Birthdate:   input.Birthdate,
+		Gender:      input.Gender,
+		Location:    input.Location,
+		CreatedAt:   now.Format(time.RFC3339),
+		UpdatedAt:   now.Format(time.RFC3339),
+	}, nil
+}
+
+// Login handles user authentication.
+func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (string, error) {
+	// Fetch the user by email
+	var hashedPassword string
+	var userID string
+	err := r.DB.QueryRowContext(ctx, "SELECT id, hashed_password FROM students WHERE email = $1", input.Email).Scan(&userID, &hashedPassword)
+	if err == sql.ErrNoRows {
+		log.Printf("Invalid email: %s", input.Email)
+		return "", fmt.Errorf("invalid email or password")
+	} else if err != nil {
+		log.Printf("Error fetching user: %v", err)
+		return "", fmt.Errorf("internal server error")
+	}
+
+	// Verify the password
+	if !verifyPassword(hashedPassword, input.Password) {
+		log.Printf("Invalid password for email: %s", input.Email)
+		return "", fmt.Errorf("invalid email or password")
+	}
+
+	// Generate a JWT token
+	token, err := r.generateJWT(userID)
+	if err != nil {
+		log.Printf("Error generating token: %v", err)
+		return "", fmt.Errorf("internal server error")
+	}
+
+	log.Printf("User logged in successfully: %s", input.Email)
+	return token, nil
+}
+
+// HealthCheck returns a simple status message.
+func (r *queryResolver) HealthCheck(ctx context.Context) (string, error) {
+	return "Service is running", nil
+}
+
+// generateJWT creates a JWT token for the given user ID.
+func (r *mutationResolver) generateJWT(userID string) (string, error) {
+	// Example implementation for generating a JWT token
+	// Replace "your-secret-key" with your actual secret key
+	secretKey := []byte("your-secret-key")
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userID": userID,
+		"exp":    time.Now().Add(time.Hour * 24).Unix(),
+	})
+	return token.SignedString(secretKey)
 }
 
 // Mutation returns MutationResolver implementation.

@@ -2,25 +2,37 @@
 
 package model
 
-type Mutation struct {
+type LoginInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
-type NewTodo struct {
-	Text   string `json:"text"`
-	UserID string `json:"userId"`
+type Mutation struct {
 }
 
 type Query struct {
 }
 
-type Todo struct {
-	ID   string `json:"id"`
-	Text string `json:"text"`
-	Done bool   `json:"done"`
-	User *User  `json:"user"`
+type SignupInput struct {
+	Username    string   `json:"username"`
+	Email       string   `json:"email"`
+	Password    string   `json:"password"`
+	PhoneNumber *string  `json:"phoneNumber,omitempty"`
+	Birthdate   *string  `json:"birthdate,omitempty"`
+	Gender      *string  `json:"gender,omitempty"`
+	Location    *string  `json:"location,omitempty"`
+	Bio         *string  `json:"bio,omitempty"`
+	Interests   []string `json:"interests,omitempty"`
 }
 
-type User struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+type Student struct {
+	ID          string  `json:"id"`
+	Username    string  `json:"username"`
+	Email       string  `json:"email"`
+	PhoneNumber *string `json:"phoneNumber,omitempty"`
+	Birthdate   *string `json:"birthdate,omitempty"`
+	Gender      *string `json:"gender,omitempty"`
+	Location    *string `json:"location,omitempty"`
+	CreatedAt   string  `json:"createdAt"`
+	UpdatedAt   string  `json:"updatedAt"`
 }
