@@ -6,132 +6,249 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"example.com/Course-Service/v2/graph/model"
+	"github.com/google/uuid"
+	pgx "github.com/jackc/pgx/v5"
 )
 
-// Mutation Resolvers
-func (r *mutationResolver) CreateCourse(ctx context.Context, name string, price float64) (*model.Course, error) {
-	storage.mutex.Lock()
-	defer storage.mutex.Unlock()
+// CreateCourse is the resolver for the createCourse field.
+func (r *mutationResolver) CreateCourse(ctx context.Context, input model.CourseInput) (*model.Course, error) {
+	// Generate UUID before insertion
+	newUUID := uuid.New().String()
 
-	course := &model.Course{
-		ID:    generateID(),
-		Name:  name,
-		Price: price,
-	}
-	// Assign to the map instead of using append
-	storage.courses[course.ID] = course
-	return course, nil
-}
+	query := `
+        INSERT INTO courses (
+            id,
+            name, 
+            price, 
+            duration, 
+            description, 
+            status, 
+            difficulty, 
+            instructor
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id, created_at, updated_at
+    `
 
-// EnrollUser is the resolver for the enrollUser field.
-func (r *mutationResolver) EnrollUser(ctx context.Context, userID int32, courseID string) (*model.Enrollment, error) {
-	storage.mutex.Lock()
-	defer storage.mutex.Unlock()
+	var id string
+	var createdAt, updatedAt time.Time
 
-	course, err := r.Resolver.Course(ctx, courseID)
+	err := r.DB.QueryRow(
+		ctx,
+		query,
+		newUUID, // Use generated UUID
+		input.Name,
+		input.Price,
+		input.Duration,
+		input.Description,
+		input.Status.String(),
+		input.Difficulty.String(),
+		input.Instructor,
+	).Scan(&id, &createdAt, &updatedAt)
+
 	if err != nil {
-		return nil, fmt.Errorf("course not found: %w", err)
+		return nil, fmt.Errorf("failed to create course: %v", err)
 	}
 
-	enrollment := &model.Enrollment{
-		ID:         generateID(),
-		UserID:     userID,
-		Course:     course,
-		EnrolledAt: time.Now().Format(time.RFC3339),
-	}
-	storage.enrollments = append(storage.enrollments, enrollment)
-	return enrollment, nil
+	return &model.Course{
+		ID:          id,
+		Name:        input.Name,
+		Price:       input.Price,
+		Duration:    input.Duration,
+		Description: input.Description,
+		Status:      input.Status,
+		Difficulty:  input.Difficulty,
+		Instructor:  input.Instructor,
+		CreatedAt:   createdAt,
+		UpdatedAt:   updatedAt,
+	}, nil
 }
 
-// CreateSubject is the resolver for the createSubject field.
-func (r *mutationResolver) CreateSubject(ctx context.Context, name string, description *string) (*model.Subject, error) {
-	storage.mutex.Lock()
-	defer storage.mutex.Unlock()
+// UpdateCourse is the resolver for the updateCourse field.
+func (r *mutationResolver) UpdateCourse(ctx context.Context, id string, input model.CourseInput) (*model.Course, error) {
+	query := `
+        UPDATE courses
+        SET 
+            name = $1,
+            price = $2,
+            duration = $3,
+            description = $4,
+            status = $6,
+            difficulty = $7,
+            instructor = $8,
+            updated_at = NOW()
+        WHERE id = $9
+        RETURNING enrollees, created_at, updated_at
+    `
 
-	subject := &model.Subject{
-		ID:          generateID(),
-		Name:        name,
-		Description: description,
-	}
-	storage.subjects = append(storage.subjects, subject)
-	return subject, nil
-}
+	var (
+		enrollees int32
+		createdAt time.Time
+		updatedAt time.Time
+	)
 
-// CreateTeacher is the resolver for the createTeacher field.
-func (r *mutationResolver) CreateTeacher(ctx context.Context, name string, email string, specialization *string) (*model.Teacher, error) {
-	storage.mutex.Lock()
-	defer storage.mutex.Unlock()
+	err := r.DB.QueryRow(
+		ctx,
+		query,
+		input.Name,
+		input.Price,
+		input.Duration,
+		input.Description,
+		input.Status.String(),
+		input.Difficulty.String(),
+		input.Instructor,
+		id, // WHERE clause parameter
+	).Scan(&enrollees, &createdAt, &updatedAt)
 
-	teacher := &model.Teacher{
-		ID:             generateID(),
-		Name:           name,
-		Email:          email,
-		Specialization: specialization,
-	}
-	storage.teachers = append(storage.teachers, teacher)
-	return teacher, nil
-}
-
-// CreateSchedule is the resolver for the createSchedule field.
-func (r *mutationResolver) CreateSchedule(ctx context.Context, courseID string, startTime string, endTime string) (*model.Schedule, error) {
-	storage.mutex.Lock()
-	defer storage.mutex.Unlock()
-
-	course, err := r.Resolver.Course(ctx, courseID)
 	if err != nil {
-		return nil, fmt.Errorf("course not found: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("course with id %s not found", id)
+		}
+		return nil, fmt.Errorf("failed to update course: %w", err)
 	}
 
-	schedule := &model.Schedule{
-		ID:        generateID(),
-		Course:    course,
-		StartTime: startTime,
-		EndTime:   endTime,
-	}
-	storage.schedules = append(storage.schedules, schedule)
-	return schedule, nil
+	return &model.Course{
+		ID:          id,
+		Name:        input.Name,
+		Price:       input.Price,
+		Duration:    input.Duration,
+		Description: input.Description,
+		Status:      input.Status,
+		Difficulty:  input.Difficulty,
+		Instructor:  input.Instructor,
+		Enrollees:   enrollees,
+		CreatedAt:   createdAt,
+		UpdatedAt:   updatedAt,
+	}, nil
 }
 
-// Query Resolvers
+// DeleteCourse is the resolver for the deleteCourse field.
+func (r *mutationResolver) DeleteCourseByName(ctx context.Context, name string) (bool, error) {
+	_, err := r.DB.Exec(ctx, `
+		DELETE FROM courses
+		WHERE name = $1
+	`, name)
+
+	if err != nil {
+		return false, nil
+	} else {
+		return true, nil
+	}
+}
+
+// Courses is the resolver for the courses field.
 func (r *queryResolver) Courses(ctx context.Context) ([]*model.Course, error) {
-	storage.mutex.RLock()
-	defer storage.mutex.RUnlock()
-
-	// Convert map values to a slice
-	courses := make([]*model.Course, 0, len(storage.courses))
-	for _, course := range storage.courses {
-		courses = append(courses, course)
+	rows, err := r.DB.Query(ctx, `
+        SELECT 
+            id, name, price, duration, description, enrollees, 
+            status, difficulty, instructor, created_at, updated_at
+        FROM courses
+    `)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch courses: %w", err)
 	}
+	defer rows.Close()
+
+	var courses []*model.Course
+	for rows.Next() {
+		var course model.Course
+		err := rows.Scan(
+			&course.ID,
+			&course.Name,
+			&course.Price,
+			&course.Duration,
+			&course.Description,
+			&course.Enrollees,
+			&course.Status,
+			&course.Difficulty,
+			&course.Instructor,
+			&course.CreatedAt,
+			&course.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan course: %w", err)
+		}
+		courses = append(courses, &course)
+	}
+
 	return courses, nil
 }
 
 // Course is the resolver for the course field.
-func (r *queryResolver) Course(ctx context.Context, id string) (*model.Course, error) {
-	return r.Resolver.Course(ctx, id)
+func (r *queryResolver) Course(ctx context.Context, courseID string) (*model.Course, error) {
+	var course model.Course
+	err := r.DB.QueryRow(ctx, `
+        SELECT 
+            id, name, price, duration, description, enrollees, 
+            status, difficulty, instructor, created_at, updated_at
+        FROM courses
+        WHERE id = $1
+    `, courseID).Scan(
+		&course.ID,
+		&course.Name,
+		&course.Price,
+		&course.Duration,
+		&course.Description,
+		&course.Enrollees,
+		&course.Status,
+		&course.Difficulty,
+		&course.Instructor,
+		&course.CreatedAt,
+		&course.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("course with id %s not found", courseID)
+		}
+		return nil, fmt.Errorf("failed to fetch course: %w", err)
+	}
+
+	return &course, nil
 }
 
-// Enrollments is the resolver for the enrollments field.
-func (r *queryResolver) Enrollments(ctx context.Context) ([]*model.Enrollment, error) {
-	return storage.enrollments, nil
-}
+// CoursesByDifficulty is the resolver for the coursesByDifficulty field.
+// CoursesByDifficulty is the resolver for the coursesByDifficulty field.
+func (r *queryResolver) CoursesByDifficulty(ctx context.Context, difficulty model.DifficultyLevel) ([]*model.Course, error) {
+	rows, err := r.DB.Query(ctx, `
+        SELECT 
+            id, name, price, duration, description, enrollees, 
+            status, difficulty, instructor, created_at, updated_at
+        FROM courses
+        WHERE difficulty = $1
+    `, difficulty.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch courses by difficulty: %w", err)
+	}
+	defer rows.Close()
 
-// Subjects is the resolver for the subjects field.
-func (r *queryResolver) Subjects(ctx context.Context) ([]*model.Subject, error) {
-	return storage.subjects, nil
-}
+	var courses []*model.Course
+	for rows.Next() {
+		var course model.Course
+		err := rows.Scan(
+			&course.ID,
+			&course.Name,
+			&course.Price,
+			&course.Duration,
+			&course.Description,
+			&course.Enrollees,
+			&course.Status,
+			&course.Difficulty,
+			&course.Instructor,
+			&course.CreatedAt,
+			&course.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan course: %w", err)
+		}
+		courses = append(courses, &course)
+	}
 
-// Teachers is the resolver for the teachers field.
-func (r *queryResolver) Teachers(ctx context.Context) ([]*model.Teacher, error) {
-	return storage.teachers, nil
-}
-
-// Schedules is the resolver for the schedules field.
-func (r *queryResolver) Schedules(ctx context.Context) ([]*model.Schedule, error) {
-	return storage.schedules, nil
+	return courses, nil
 }
 
 // Mutation returns MutationResolver implementation.

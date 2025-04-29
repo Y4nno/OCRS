@@ -6,22 +6,48 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 )
 
 type Course struct {
-	ID        string      `json:"id"`
-	Name      string      `json:"name"`
-	Price     float64     `json:"price"`
-	Schedules []*Schedule `json:"schedules,omitempty"`
-	Subjects  []*Subject  `json:"subjects,omitempty"`
-	Teachers  []*Teacher  `json:"teachers,omitempty"`
+	ID          string          `json:"id"`
+	Name        string          `json:"name"`
+	Price       float64         `json:"price"`
+	Duration    string          `json:"duration"`
+	Description string          `json:"description"`
+	Enrollees   int32           `json:"enrollees"`
+	Status      CourseStatus    `json:"status"`
+	Difficulty  DifficultyLevel `json:"difficulty"`
+	Instructor  string          `json:"instructor"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+	Enrollments []*Enrollment   `json:"enrollments"`
+}
+
+type CourseInput struct {
+	Name        string          `json:"name"`
+	Price       float64         `json:"price"`
+	Duration    string          `json:"duration"`
+	Description string          `json:"description"`
+	Status      CourseStatus    `json:"status"`
+	Difficulty  DifficultyLevel `json:"difficulty"`
+	Instructor  string          `json:"instructor"`
 }
 
 type Enrollment struct {
-	ID         string  `json:"id"`
-	UserID     int32   `json:"userId"`
-	Course     *Course `json:"course"`
-	EnrolledAt string  `json:"enrolledAt"`
+	ID         string           `json:"id"`
+	Course     *Course          `json:"course"`
+	Student    *Student         `json:"student"`
+	Status     EnrollmentStatus `json:"status"`
+	EnrolledAt time.Time        `json:"enrolledAt"`
+	CreatedAt  time.Time        `json:"createdAt"`
+	UpdatedAt  time.Time        `json:"updatedAt"`
+}
+
+type EnrollmentInput struct {
+	CourseID  string           `json:"courseId"`
+	StudentID string           `json:"studentId"`
+	Status    EnrollmentStatus `json:"status"`
 }
 
 type Mutation struct {
@@ -30,80 +56,138 @@ type Mutation struct {
 type Query struct {
 }
 
-type Schedule struct {
-	ID        string         `json:"id"`
-	Course    *Course        `json:"course"`
-	StartTime string         `json:"startTime"`
-	EndTime   string         `json:"endTime"`
-	Days      []*ScheduleDay `json:"days,omitempty"`
+type Student struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
-type ScheduleDay struct {
-	Schedule *Schedule `json:"schedule"`
-	Day      DayEnum   `json:"day"`
-}
-
-type Subject struct {
-	ID          string  `json:"id"`
-	Name        string  `json:"name"`
-	Description *string `json:"description,omitempty"`
-}
-
-type Teacher struct {
-	ID             string    `json:"id"`
-	Name           string    `json:"name"`
-	Email          string    `json:"email"`
-	Specialization *string   `json:"specialization,omitempty"`
-	Courses        []*Course `json:"courses,omitempty"`
-}
-
-type DayEnum string
+type CourseStatus string
 
 const (
-	DayEnumMonday    DayEnum = "MONDAY"
-	DayEnumTuesday   DayEnum = "TUESDAY"
-	DayEnumWednesday DayEnum = "WEDNESDAY"
-	DayEnumThursday  DayEnum = "THURSDAY"
-	DayEnumFriday    DayEnum = "FRIDAY"
-	DayEnumSaturday  DayEnum = "SATURDAY"
-	DayEnumSunday    DayEnum = "SUNDAY"
+	CourseStatusAvailable   CourseStatus = "AVAILABLE"
+	CourseStatusUnavailable CourseStatus = "UNAVAILABLE"
+	CourseStatusEnlisted    CourseStatus = "ENLISTED"
 )
 
-var AllDayEnum = []DayEnum{
-	DayEnumMonday,
-	DayEnumTuesday,
-	DayEnumWednesday,
-	DayEnumThursday,
-	DayEnumFriday,
-	DayEnumSaturday,
-	DayEnumSunday,
+var AllCourseStatus = []CourseStatus{
+	CourseStatusAvailable,
+	CourseStatusUnavailable,
+	CourseStatusEnlisted,
 }
 
-func (e DayEnum) IsValid() bool {
+func (e CourseStatus) IsValid() bool {
 	switch e {
-	case DayEnumMonday, DayEnumTuesday, DayEnumWednesday, DayEnumThursday, DayEnumFriday, DayEnumSaturday, DayEnumSunday:
+	case CourseStatusAvailable, CourseStatusUnavailable, CourseStatusEnlisted:
 		return true
 	}
 	return false
 }
 
-func (e DayEnum) String() string {
+func (e CourseStatus) String() string {
 	return string(e)
 }
 
-func (e *DayEnum) UnmarshalGQL(v any) error {
+func (e *CourseStatus) UnmarshalGQL(v any) error {
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("enums must be strings")
 	}
 
-	*e = DayEnum(str)
+	*e = CourseStatus(str)
 	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid DayEnum", str)
+		return fmt.Errorf("%s is not a valid CourseStatus", str)
 	}
 	return nil
 }
 
-func (e DayEnum) MarshalGQL(w io.Writer) {
+func (e CourseStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type DifficultyLevel string
+
+const (
+	DifficultyLevelIntroduction DifficultyLevel = "INTRODUCTION"
+	DifficultyLevelBeginner     DifficultyLevel = "BEGINNER"
+	DifficultyLevelIntermediate DifficultyLevel = "INTERMEDIATE"
+	DifficultyLevelAdvanced     DifficultyLevel = "ADVANCED"
+)
+
+var AllDifficultyLevel = []DifficultyLevel{
+	DifficultyLevelIntroduction,
+	DifficultyLevelBeginner,
+	DifficultyLevelIntermediate,
+	DifficultyLevelAdvanced,
+}
+
+func (e DifficultyLevel) IsValid() bool {
+	switch e {
+	case DifficultyLevelIntroduction, DifficultyLevelBeginner, DifficultyLevelIntermediate, DifficultyLevelAdvanced:
+		return true
+	}
+	return false
+}
+
+func (e DifficultyLevel) String() string {
+	return string(e)
+}
+
+func (e *DifficultyLevel) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DifficultyLevel(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid DifficultyLevel", str)
+	}
+	return nil
+}
+
+func (e DifficultyLevel) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type EnrollmentStatus string
+
+const (
+	EnrollmentStatusActive    EnrollmentStatus = "ACTIVE"
+	EnrollmentStatusCompleted EnrollmentStatus = "COMPLETED"
+	EnrollmentStatusCancelled EnrollmentStatus = "CANCELLED"
+)
+
+var AllEnrollmentStatus = []EnrollmentStatus{
+	EnrollmentStatusActive,
+	EnrollmentStatusCompleted,
+	EnrollmentStatusCancelled,
+}
+
+func (e EnrollmentStatus) IsValid() bool {
+	switch e {
+	case EnrollmentStatusActive, EnrollmentStatusCompleted, EnrollmentStatusCancelled:
+		return true
+	}
+	return false
+}
+
+func (e EnrollmentStatus) String() string {
+	return string(e)
+}
+
+func (e *EnrollmentStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = EnrollmentStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid EnrollmentStatus", str)
+	}
+	return nil
+}
+
+func (e EnrollmentStatus) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

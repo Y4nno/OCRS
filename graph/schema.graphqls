@@ -1,71 +1,82 @@
-# graph/schema.graphqls
+# Schema: schema.graphqls
 
-enum DayEnum {
-  MONDAY
-  TUESDAY
-  WEDNESDAY
-  THURSDAY
-  FRIDAY
-  SATURDAY
-  SUNDAY
+scalar Time
+
+enum CourseStatus {
+  AVAILABLE
+  UNAVAILABLE
+  ENLISTED
+}
+
+enum DifficultyLevel {
+  INTRODUCTION
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
 }
 
 type Course {
   id: ID!
   name: String!
   price: Float!
-  schedules: [Schedule]
-  subjects: [Subject]
-  teachers: [Teacher]
+  duration: String!
+  description: String!
+  enrollees: Int!
+  status: CourseStatus!
+  difficulty: DifficultyLevel!
+  instructor: String!
+  createdAt: Time!
+  updatedAt: Time!
+  enrollments: [Enrollment!]!
 }
 
 type Enrollment {
   id: ID!
-  userId: Int!
   course: Course!
-  enrolledAt: String!
+  student: Student!    # Will be resolved from external service
+  status: EnrollmentStatus!
+  enrolledAt: Time!
+  createdAt: Time!
+  updatedAt: Time!
 }
 
-type Subject {
+type Student{
   id: ID!
   name: String!
-  description: String
 }
 
-type Teacher {
-  id: ID!
+input CourseInput {
   name: String!
-  email: String!
-  specialization: String
-  courses: [Course]
+  price: Float!
+  duration: String!
+  description: String!
+  status: CourseStatus!
+  difficulty: DifficultyLevel!
+  instructor: String!
 }
 
-type Schedule {
-  id: ID!
-  course: Course!
-  startTime: String!
-  endTime: String!
-  days: [ScheduleDay]
-}
-
-type ScheduleDay {
-  schedule: Schedule!
-  day: DayEnum!
+input EnrollmentInput {
+  courseId: ID!
+  studentId: ID!     # Reference to external student ID
+  status: EnrollmentStatus!
 }
 
 type Query {
-  courses: [Course]
-  course(id: ID!): Course
-  enrollments: [Enrollment]
-  subjects: [Subject]
-  teachers: [Teacher]
-  schedules: [Schedule]
+  # Course queries
+  courses: [Course!]!
+  course(courseId: ID!): Course
+  coursesByDifficulty(difficulty: DifficultyLevel!): [Course!]!
 }
 
 type Mutation {
-  createCourse(name: String!, price: Float!): Course!
-  enrollUser(userId: Int!, courseId: ID!): Enrollment!
-  createSubject(name: String!, description: String): Subject!
-  createTeacher(name: String!, email: String!, specialization: String): Teacher!
-  createSchedule(courseId: ID!, startTime: String!, endTime: String!): Schedule!
+  # Course mutations
+  createCourse(input: CourseInput!): Course!
+  updateCourse(id: ID!, input: CourseInput!): Course!
+  deleteCourseByName(name: String!): Boolean!
 }

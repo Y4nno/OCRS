@@ -1,0 +1,66 @@
+/* Center the courses wrapper and add spacing */
+.courses-wrapper {
+  display: flex;
+  justify-content: center; /* Center the courses horizontally */
+  gap: 120px; /* Add spacing between the cards */
+  flex-wrap: wrap; /* Ensure responsiveness */
+}
+
+/* Style for the course card */
+.course-card {
+  width: 650px; /* Set a fixed width for the cards */
+  height: 200px;
+}
+
+/* Style for the card */
+.card {
+  background-color: #ffffff; /* Set the card background to white */
+  border: none;
+  border-radius: 10px;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  display: flex;
+  flex-direction: column; /* Ensure content stacks vertically */
+  justify-content: space-between; /* Space out content evenly */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Add a subtle shadow for better visibility */
+}
+
+.card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Align the card title to the left */
+/* Style for the card title */
+.card-title {
+  font-weight: bold;
+  color: #333;
+  text-align: left; /* Align the title to the left */
+  margin: 0; /* Remove any margin around the title */
+  padding: 0; /* Remove any padding around the title */
+  font-size: 1.5rem; /* Adjust font size if needed */
+}
+
+/* Style for the card body */
+.card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* Align content to the top */
+  padding: 10px 10px 0 10px; /* Remove bottom padding */
+  gap: 5px; /* Add consistent spacing between elements */
+}
+
+/* Style for the button */
+.btn {
+  margin-top: 0px; /* Add a small margin above the button */
+  align-self: flex-start; /* Align the button to the left */
+}
+
+/* Style for the card image */
+.card-img-top {
+  width: 100%; /* Make the image span the full width of the card */
+  height: auto; /* Maintain the aspect ratio */
+  object-fit: cover; /* Ensure the image covers the area without distortion */
+  border-top-left-radius: 10px; /* Match the card's border radius */
+  border-top-right-radius: 10px; /* Match the card's border radius */
+}
+/* Style for the card image */
