@@ -5,7 +5,7 @@ export default function EnrollmentPage() {
 
     // Fetch data from the API
     useEffect(() => {
-        fetch('http://localhost:8080/', {
+        fetch('http://localhost:8080/query', { // Use /query as the endpoint
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
