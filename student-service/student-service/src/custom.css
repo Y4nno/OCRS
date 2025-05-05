@@ -1,0 +1,24 @@
+.navbar {
+    background-color: #7B3538; 
+    margin-bottom: 20px; 
+    z-index:1; 
+    position: sticky;
+    box-sizing: border-box;  
+    box-shadow: 0px 5px 5px rgba(0, 0, 0, 0.35);
+    }
+    a.nav-link {
+      color: #c1bbbb;
+    }
+    a.nav-link:hover {
+      color: #FCF5F5;
+    }
+    .navbar-nav .nav-link.active, .navbar-nav .nav-link.show {
+      color: #FCF5F5;
+    }
+  
+    body {
+      background-color: #FCF5F5;
+      font-family: 'Instrument Sans', sans-serif;
+      line-height: 1.5;
+    }
+  
