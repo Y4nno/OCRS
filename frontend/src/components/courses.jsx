@@ -1,42 +1,9 @@
 import React from 'react';
-import { gql, useQuery } from '@apollo/client'; // Import useQuery
+import { gql, useQuery, useSubscription } from '@apollo/client'; // Import useSubscription
 import { Link } from 'react-router-dom';
 import './courses.css';
 import courseImage from './Courseimage.jpg';
-
-// Navbar Component
-function Navbar() {
-  return (
-    <nav className="navbar navbar-expand-lg" style={{ backgroundColor: '#7B3538', boxShadow: '0px 5px 5px rgba(0, 0, 0, 0.35)' }}>
-      <div className="navbar-top">
-        <div className="home-courses-container">
-          <Link to="/">
-            Home
-          </Link>
-          <Link to="/courses">
-            Courses
-          </Link>
-        </div>
-        <div className="lionheart-container">
-          <h1>LIONHEART</h1>
-        </div>
-        <div className="login-register-container">
-          <Link to="/">
-            Login
-          </Link>
-          <Link to="/courses">
-            Register
-          </Link>
-        </div>
-      </div>
-      <div className="navbar-bottom">
-        <div className="search-bar-container">
-          <input className="search-bar"/>
-        </div>
-      </div>
-    </nav>
-  );
-}
+import Navbar from './navbar';
 
 // GraphQL Query
 const GET_COURSES = gql`
@@ -44,7 +11,17 @@ const GET_COURSES = gql`
     courses {
       id
       name
-      enrollees
+      difficulty
+    }
+  }
+`;
+
+// GraphQL Subscription
+const COURSE_CREATED = gql`
+  subscription CourseCreated {
+    courseCreated {
+      id
+      name
       difficulty
     }
   }
@@ -53,6 +30,17 @@ const GET_COURSES = gql`
 export default function UserCourses() {
   // Fetch data using the useQuery hook
   const { loading, error, data } = useQuery(GET_COURSES);
+
+  // Listen for real-time updates using the useSubscription hook
+  const { data: subscriptionData } = useSubscription(COURSE_CREATED);
+
+  // Update the course list dynamically when a new course is created
+  if (subscriptionData) {
+    const newCourse = subscriptionData.courseCreated;
+    if (!data.courses.find((course) => course.id === newCourse.id)) {
+      data.courses = [...data.courses, newCourse]; // Add the new course to the list
+    }
+  }
 
   if (loading) return <p>Loading...</p>;
   if (error) {
@@ -66,11 +54,11 @@ export default function UserCourses() {
 
   return (
     <div>
-      {/* Include Navbar */}
       <Navbar />
-
       <div className="container py-5">
-        <h2 className="mb-4 text-center">COURSES</h2>
+        <div className="course-container">
+          <h2>COURSES</h2>
+        </div>
 
         {/* Display Courses */}
         <div className="courses-wrapper">

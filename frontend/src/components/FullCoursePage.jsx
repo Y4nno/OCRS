@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { gql, useQuery } from '@apollo/client';
 import './FullCoursePage.css'; // Import the CSS file for styling
+import No_bar from './no_search_bar'
 
 // GraphQL Query to Fetch Course by ID
 const GET_COURSE_BY_ID = gql`
@@ -12,17 +13,11 @@ const GET_COURSE_BY_ID = gql`
       price
       duration
       description
-      enrollees
       status
       difficulty
       instructor
       createdAt
       updatedAt
-      enrollments {
-        id
-        status
-        enrolledAt
-      }
     }
   }
 `;
@@ -48,10 +43,7 @@ export default function FullCoursePage() {
   return (
     <div className="course-page">
       {/* Hero Section */}
-      <div className="hero-section">
-        <h1 className="course-title">{course.name}</h1>
-      </div>
-
+      <No_bar/>
       {/* Course Details Section */}
       <div className="course-details">
         <h2>Course Details</h2>
@@ -60,7 +52,6 @@ export default function FullCoursePage() {
           <li><strong>Difficulty:</strong> {course.difficulty}</li>
           <li><strong>Status:</strong> {course.status}</li>
           <li><strong>Instructor:</strong> {course.instructor}</li>
-          <li><strong>Enrollees:</strong> {course.enrollees}</li>
           <li><strong>Price:</strong> ${course.price}</li>
         </ul>
       </div>

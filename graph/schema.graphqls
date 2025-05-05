@@ -27,31 +27,15 @@ type Course {
   price: Float!
   duration: String!
   description: String!
-  enrollees: Int!
   status: CourseStatus!
   difficulty: DifficultyLevel!
   instructor: String!
   createdAt: Time!
   updatedAt: Time!
-  enrollments: [Enrollment!]!
-}
-
-type Enrollment {
-  id: ID!
-  course: Course!
-  student: Student!    # Will be resolved from external service
-  status: EnrollmentStatus!
-  enrolledAt: Time!
-  createdAt: Time!
-  updatedAt: Time!
-}
-
-type Student{
-  id: ID!
-  name: String!
 }
 
 input CourseInput {
+  id: ID!
   name: String!
   price: Float!
   duration: String!
@@ -61,17 +45,16 @@ input CourseInput {
   instructor: String!
 }
 
-input EnrollmentInput {
-  courseId: ID!
-  studentId: ID!     # Reference to external student ID
-  status: EnrollmentStatus!
-}
-
 type Query {
   # Course queries
   courses: [Course!]!
   course(courseId: ID!): Course
-  coursesByDifficulty(difficulty: DifficultyLevel!): [Course!]!
+}
+
+type Subscription {
+  courseCreated: Course!
+  courseUpdated: Course!
+  courseDeletedByName: Boolean!
 }
 
 type Mutation {

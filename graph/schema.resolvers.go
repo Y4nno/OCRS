@@ -9,17 +9,20 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
+	"sync"
 	"example.com/Course-Service/v2/graph/model"
-	"github.com/google/uuid"
 	pgx "github.com/jackc/pgx/v5"
+)
+
+var (
+    courseCreatedChannel       = make(chan *model.Course)
+    courseUpdatedChannel       = make(chan *model.Course)
+    courseDeletedByNameChannel = make(chan bool)
+    mu                         sync.Mutex // Mutex for concurrency safety
 )
 
 // CreateCourse is the resolver for the createCourse field.
 func (r *mutationResolver) CreateCourse(ctx context.Context, input model.CourseInput) (*model.Course, error) {
-	// Generate UUID before insertion
-	newUUID := uuid.New().String()
-
 	query := `
         INSERT INTO courses (
             id,
@@ -41,7 +44,7 @@ func (r *mutationResolver) CreateCourse(ctx context.Context, input model.CourseI
 	err := r.DB.QueryRow(
 		ctx,
 		query,
-		newUUID, // Use generated UUID
+		input.ID,
 		input.Name,
 		input.Price,
 		input.Duration,
@@ -55,7 +58,7 @@ func (r *mutationResolver) CreateCourse(ctx context.Context, input model.CourseI
 		return nil, fmt.Errorf("failed to create course: %v", err)
 	}
 
-	return &model.Course{
+	course := &model.Course{
 		ID:          id,
 		Name:        input.Name,
 		Price:       input.Price,
@@ -66,7 +69,25 @@ func (r *mutationResolver) CreateCourse(ctx context.Context, input model.CourseI
 		Instructor:  input.Instructor,
 		CreatedAt:   createdAt,
 		UpdatedAt:   updatedAt,
-	}, nil
+	}
+
+	// 🔴 Publish to subscription channel
+	go func() {
+		courseCreatedChannel <- &model.Course{
+			ID:          id,
+			Name:        input.Name,
+			Price:       input.Price,
+			Duration:    input.Duration,
+			Description: input.Description,
+			Status:      input.Status,
+			Difficulty:  input.Difficulty,
+			Instructor:  input.Instructor,
+			CreatedAt:   createdAt,
+			UpdatedAt:   updatedAt,
+		}
+	}()
+
+	return course, nil
 }
 
 // UpdateCourse is the resolver for the updateCourse field.
@@ -83,11 +104,10 @@ func (r *mutationResolver) UpdateCourse(ctx context.Context, id string, input mo
             instructor = $8,
             updated_at = NOW()
         WHERE id = $9
-        RETURNING enrollees, created_at, updated_at
+        RETURNING created_at, updated_at
     `
 
 	var (
-		enrollees int32
 		createdAt time.Time
 		updatedAt time.Time
 	)
@@ -102,8 +122,8 @@ func (r *mutationResolver) UpdateCourse(ctx context.Context, id string, input mo
 		input.Status.String(),
 		input.Difficulty.String(),
 		input.Instructor,
-		id, // WHERE clause parameter
-	).Scan(&enrollees, &createdAt, &updatedAt)
+		id,
+	).Scan(&createdAt, &updatedAt)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -112,7 +132,7 @@ func (r *mutationResolver) UpdateCourse(ctx context.Context, id string, input mo
 		return nil, fmt.Errorf("failed to update course: %w", err)
 	}
 
-	return &model.Course{
+	course := &model.Course{
 		ID:          id,
 		Name:        input.Name,
 		Price:       input.Price,
@@ -121,31 +141,47 @@ func (r *mutationResolver) UpdateCourse(ctx context.Context, id string, input mo
 		Status:      input.Status,
 		Difficulty:  input.Difficulty,
 		Instructor:  input.Instructor,
-		Enrollees:   enrollees,
 		CreatedAt:   createdAt,
 		UpdatedAt:   updatedAt,
-	}, nil
+	}
+
+	// 🔴 Publish to subscription channel
+	go func() {
+		courseUpdatedChannel <- course
+	}()
+
+	return course, nil
 }
+
 
 // DeleteCourse is the resolver for the deleteCourse field.
 func (r *mutationResolver) DeleteCourseByName(ctx context.Context, name string) (bool, error) {
-	_, err := r.DB.Exec(ctx, `
+	cmdTag, err := r.DB.Exec(ctx, `
 		DELETE FROM courses
 		WHERE name = $1
 	`, name)
 
 	if err != nil {
-		return false, nil
-	} else {
-		return true, nil
+		return false, err
 	}
+
+	deleted := cmdTag.RowsAffected() > 0
+	if deleted {
+		// 🔴 Publish to subscription channel
+		go func() {
+			courseDeletedByNameChannel <- true
+		}()
+	}
+
+	return deleted, nil
 }
+
 
 // Courses is the resolver for the courses field.
 func (r *queryResolver) Courses(ctx context.Context) ([]*model.Course, error) {
 	rows, err := r.DB.Query(ctx, `
         SELECT 
-            id, name, price, duration, description, enrollees, 
+            id, name, price, duration, description, 
             status, difficulty, instructor, created_at, updated_at
         FROM courses
     `)
@@ -163,7 +199,6 @@ func (r *queryResolver) Courses(ctx context.Context) ([]*model.Course, error) {
 			&course.Price,
 			&course.Duration,
 			&course.Description,
-			&course.Enrollees,
 			&course.Status,
 			&course.Difficulty,
 			&course.Instructor,
@@ -184,7 +219,7 @@ func (r *queryResolver) Course(ctx context.Context, courseID string) (*model.Cou
 	var course model.Course
 	err := r.DB.QueryRow(ctx, `
         SELECT 
-            id, name, price, duration, description, enrollees, 
+            id, name, price, duration, description, 
             status, difficulty, instructor, created_at, updated_at
         FROM courses
         WHERE id = $1
@@ -194,7 +229,6 @@ func (r *queryResolver) Course(ctx context.Context, courseID string) (*model.Cou
 		&course.Price,
 		&course.Duration,
 		&course.Description,
-		&course.Enrollees,
 		&course.Status,
 		&course.Difficulty,
 		&course.Instructor,
@@ -211,44 +245,59 @@ func (r *queryResolver) Course(ctx context.Context, courseID string) (*model.Cou
 	return &course, nil
 }
 
-// CoursesByDifficulty is the resolver for the coursesByDifficulty field.
-// CoursesByDifficulty is the resolver for the coursesByDifficulty field.
-func (r *queryResolver) CoursesByDifficulty(ctx context.Context, difficulty model.DifficultyLevel) ([]*model.Course, error) {
-	rows, err := r.DB.Query(ctx, `
-        SELECT 
-            id, name, price, duration, description, enrollees, 
-            status, difficulty, instructor, created_at, updated_at
-        FROM courses
-        WHERE difficulty = $1
-    `, difficulty.String())
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch courses by difficulty: %w", err)
-	}
-	defer rows.Close()
+// CourseCreated is the resolver for the courseCreated field.
+// CourseCreated is the resolver for the courseCreated subscription.
+func (r *subscriptionResolver) CourseCreated(ctx context.Context) (<-chan *model.Course, error) {
+	events := make(chan *model.Course)
 
-	var courses []*model.Course
-	for rows.Next() {
-		var course model.Course
-		err := rows.Scan(
-			&course.ID,
-			&course.Name,
-			&course.Price,
-			&course.Duration,
-			&course.Description,
-			&course.Enrollees,
-			&course.Status,
-			&course.Difficulty,
-			&course.Instructor,
-			&course.CreatedAt,
-			&course.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan course: %w", err)
+	go func() {
+		for course := range courseCreatedChannel {
+			select {
+			case <-ctx.Done():
+				close(events)
+				return
+			case events <- course:
+			}
 		}
-		courses = append(courses, &course)
-	}
+	}()
 
-	return courses, nil
+	return events, nil
+}
+
+// CourseUpdated is the resolver for the courseUpdated subscription.
+func (r *subscriptionResolver) CourseUpdated(ctx context.Context) (<-chan *model.Course, error) {
+	events := make(chan *model.Course)
+
+	go func() {
+		for course := range courseUpdatedChannel {
+			select {
+			case <-ctx.Done():
+				close(events)
+				return
+			case events <- course:
+			}
+		}
+	}()
+
+	return events, nil
+}
+
+// CourseDeletedByName is the resolver for the courseDeletedByName subscription.
+func (r *subscriptionResolver) CourseDeletedByName(ctx context.Context) (<-chan bool, error) {
+	events := make(chan bool)
+
+	go func() {
+		for deleted := range courseDeletedByNameChannel {
+			select {
+			case <-ctx.Done():
+				close(events)
+				return
+			case events <- deleted:
+			}
+		}
+	}()
+
+	return events, nil
 }
 
 // Mutation returns MutationResolver implementation.
@@ -257,5 +306,9 @@ func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+// Subscription returns SubscriptionResolver implementation.
+func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionResolver{r} }
+
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type subscriptionResolver struct{ *Resolver }

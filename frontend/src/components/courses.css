@@ -1,4 +1,12 @@
 /* Center the courses wrapper and add spacing */
+.course-container{
+  margin: 60px ;
+}
+
+.course-container h2{
+  font-size: 2.5rem;
+}
+
 .courses-wrapper {
   display: flex;
   justify-content: center; /* Center the courses horizontally */

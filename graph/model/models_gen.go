@@ -15,16 +15,15 @@ type Course struct {
 	Price       float64         `json:"price"`
 	Duration    string          `json:"duration"`
 	Description string          `json:"description"`
-	Enrollees   int32           `json:"enrollees"`
 	Status      CourseStatus    `json:"status"`
 	Difficulty  DifficultyLevel `json:"difficulty"`
 	Instructor  string          `json:"instructor"`
 	CreatedAt   time.Time       `json:"createdAt"`
 	UpdatedAt   time.Time       `json:"updatedAt"`
-	Enrollments []*Enrollment   `json:"enrollments"`
 }
 
 type CourseInput struct {
+	ID          string          `json:"id"`
 	Name        string          `json:"name"`
 	Price       float64         `json:"price"`
 	Duration    string          `json:"duration"`
@@ -34,31 +33,13 @@ type CourseInput struct {
 	Instructor  string          `json:"instructor"`
 }
 
-type Enrollment struct {
-	ID         string           `json:"id"`
-	Course     *Course          `json:"course"`
-	Student    *Student         `json:"student"`
-	Status     EnrollmentStatus `json:"status"`
-	EnrolledAt time.Time        `json:"enrolledAt"`
-	CreatedAt  time.Time        `json:"createdAt"`
-	UpdatedAt  time.Time        `json:"updatedAt"`
-}
-
-type EnrollmentInput struct {
-	CourseID  string           `json:"courseId"`
-	StudentID string           `json:"studentId"`
-	Status    EnrollmentStatus `json:"status"`
-}
-
 type Mutation struct {
 }
 
 type Query struct {
 }
 
-type Student struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+type Subscription struct {
 }
 
 type CourseStatus string
