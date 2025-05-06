@@ -7,122 +7,96 @@ package graph
 import (
 	"context"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
-	"fmt"
 	"log"
 	"student-service/graph/model"
-	"time"
-
-	"github.com/golang-jwt/jwt/v4"
-	"github.com/google/uuid"
-	"github.com/lib/pq"
+	"sync"
 )
 
-// hashPassword hashes a password using SHA-256.
-func hashPassword(password string) string {
-	hash := sha256.Sum256([]byte(password))
-	return hex.EncodeToString(hash[:])
-}
-
-// verifyPassword compares a hashed password with a plain text password.
-func verifyPassword(hashedPassword, password string) bool {
-	return hashedPassword == hashPassword(password)
-}
-
-// Signup handles user registration.
-func (r *mutationResolver) Signup(ctx context.Context, input model.SignupInput) (*model.Student, error) {
-	// Check if the email already exists
+// Mutation: Register a new user
+func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInput) (*model.RegisterResponse, error) {
+	// Check if the username or email already exists in the students table
 	var exists bool
-	err := r.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM students WHERE email = $1)", input.Email).Scan(&exists)
+	err := r.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM students WHERE username = $1 OR email = $2)", input.Username, input.Email).Scan(&exists)
 	if err != nil {
-		log.Printf("Error checking email existence: %v", err)
-		return nil, fmt.Errorf("internal server error")
+		log.Printf("Error checking student existence: %v", err)
+		return &model.RegisterResponse{Success: false, Message: "Internal server error while checking student existence"}, nil
 	}
 	if exists {
-		log.Printf("Email already in use: %s", input.Email)
-		return nil, fmt.Errorf("email already in use")
+		return &model.RegisterResponse{Success: false, Message: "Username or email already exists"}, nil
 	}
 
 	// Hash the password
 	hashedPassword := hashPassword(input.Password)
 
-	// Generate UUID and timestamps
-	id := uuid.New()
-	now := time.Now()
-
-	// Insert the user into the database
-	_, err = r.DB.ExecContext(ctx, `
-        INSERT INTO students (id, username, email, phone_number, birthdate, gender, location, bio, interests, hashed_password, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-    `, id, input.Username, input.Email, input.PhoneNumber, input.Birthdate, input.Gender, input.Location, input.Bio, pq.Array(input.Interests), hashedPassword, now, now)
-
+	// Insert the student into the students table
+	_, err = r.DB.ExecContext(ctx, "INSERT INTO students (fullName, email, username, password) VALUES ($1, $2, $3, $4)", input.FullName, input.Email, input.Username, hashedPassword)
 	if err != nil {
 		log.Printf("Error inserting student: %v", err)
-		return nil, fmt.Errorf("failed to create user")
+		return &model.RegisterResponse{Success: false, Message: "Failed to create account"}, nil
 	}
 
-	// Return the created user
-	log.Printf("User created successfully: %s", input.Email)
-	return &model.Student{
-		ID:          id.String(),
-		Username:    input.Username,
-		Email:       input.Email,
-		PhoneNumber: input.PhoneNumber,
-		Birthdate:   input.Birthdate,
-		Gender:      input.Gender,
-		Location:    input.Location,
-		CreatedAt:   now.Format(time.RFC3339),
-		UpdatedAt:   now.Format(time.RFC3339),
-	}, nil
+	return &model.RegisterResponse{Success: true, Message: "Account created successfully"}, nil
 }
 
-// Login handles user authentication.
-func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (string, error) {
-	// Fetch the user by email
+// Mutation: Login a user
+func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*model.LoginResponse, error) {
+	// Fetch the user by username
 	var hashedPassword string
-	var userID string
-	err := r.DB.QueryRowContext(ctx, "SELECT id, hashed_password FROM students WHERE email = $1", input.Email).Scan(&userID, &hashedPassword)
-	if err == sql.ErrNoRows {
-		log.Printf("Invalid email: %s", input.Email)
-		return "", fmt.Errorf("invalid email or password")
-	} else if err != nil {
-		log.Printf("Error fetching user: %v", err)
-		return "", fmt.Errorf("internal server error")
+	err := r.DB.QueryRowContext(ctx, "SELECT password FROM students WHERE username = $1", input.Username).Scan(&hashedPassword)
+	if err != nil {
+		log.Printf("Invalid username: %s", input.Username)
+		return &model.LoginResponse{Success: false, Message: "Incorrect username or password"}, nil
 	}
 
 	// Verify the password
-	if !verifyPassword(hashedPassword, input.Password) {
-		log.Printf("Invalid password for email: %s", input.Email)
-		return "", fmt.Errorf("invalid email or password")
+	if hashedPassword != hashPassword(input.Password) {
+		log.Printf("Invalid password for username: %s", input.Username)
+		return &model.LoginResponse{Success: false, Message: "Incorrect username or password"}, nil
 	}
 
-	// Generate a JWT token
-	token, err := r.generateJWT(userID)
-	if err != nil {
-		log.Printf("Error generating token: %v", err)
-		return "", fmt.Errorf("internal server error")
-	}
+	// Notify subscribers about the login event
+	go func() {
+		loginSubscribers.Lock()
+		defer loginSubscribers.Unlock()
+		for _, subscriber := range loginSubscribers.subscribers {
+			subscriber <- &model.LoginEvent{
+				Username: input.Username,
+				Message:  "User logged in successfully",
+			}
+		}
+	}()
 
-	log.Printf("User logged in successfully: %s", input.Email)
-	return token, nil
+	return &model.LoginResponse{Success: true, Message: "Login successful!!"}, nil
 }
 
-// HealthCheck returns a simple status message.
+// HealthCheck is the resolver for the healthCheck field.
 func (r *queryResolver) HealthCheck(ctx context.Context) (string, error) {
-	return "Service is running", nil
+	return "Server is healthy", nil
 }
 
-// generateJWT creates a JWT token for the given user ID.
-func (r *mutationResolver) generateJWT(userID string) (string, error) {
-	// Example implementation for generating a JWT token
-	// Replace "your-secret-key" with your actual secret key
-	secretKey := []byte("your-secret-key")
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"userID": userID,
-		"exp":    time.Now().Add(time.Hour * 24).Unix(),
-	})
-	return token.SignedString(secretKey)
+// Subscription: User logged in
+func (r *subscriptionResolver) UserLoggedIn(ctx context.Context) (<-chan *model.LoginEvent, error) {
+	loginSubscribers.Lock()
+	defer loginSubscribers.Unlock()
+
+	ch := make(chan *model.LoginEvent, 1)
+	loginSubscribers.subscribers = append(loginSubscribers.subscribers, ch)
+
+	go func() {
+		<-ctx.Done()
+		loginSubscribers.Lock()
+		defer loginSubscribers.Unlock()
+		for i, subscriber := range loginSubscribers.subscribers {
+			if subscriber == ch {
+				loginSubscribers.subscribers = append(loginSubscribers.subscribers[:i], loginSubscribers.subscribers[i+1:]...)
+				break
+			}
+		}
+		close(ch)
+	}()
+
+	return ch, nil
 }
 
 // Mutation returns MutationResolver implementation.
@@ -131,5 +105,25 @@ func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+// Subscription returns SubscriptionResolver implementation.
+func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionResolver{r} }
+
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type subscriptionResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//     it when you're done.
+//   - You have helper methods in this file. Move them out to keep these resolver files clean.
+var loginSubscribers = struct {
+	sync.Mutex
+	subscribers []chan *model.LoginEvent
+}{}
+
+func hashPassword(password string) string {
+	hash := sha256.Sum256([]byte(password))
+	return hex.EncodeToString(hash[:])
+}

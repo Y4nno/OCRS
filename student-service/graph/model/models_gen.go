@@ -2,9 +2,19 @@
 
 package model
 
+type LoginEvent struct {
+	Username string `json:"username"`
+	Message  string `json:"message"`
+}
+
 type LoginInput struct {
-	Email    string `json:"email"`
+	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+type LoginResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
 }
 
 type Mutation struct {
@@ -13,26 +23,17 @@ type Mutation struct {
 type Query struct {
 }
 
-type SignupInput struct {
-	Username    string   `json:"username"`
-	Email       string   `json:"email"`
-	Password    string   `json:"password"`
-	PhoneNumber *string  `json:"phoneNumber,omitempty"`
-	Birthdate   *string  `json:"birthdate,omitempty"`
-	Gender      *string  `json:"gender,omitempty"`
-	Location    *string  `json:"location,omitempty"`
-	Bio         *string  `json:"bio,omitempty"`
-	Interests   []string `json:"interests,omitempty"`
+type RegisterInput struct {
+	FullName string `json:"fullName"`
+	Email    string `json:"email"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
-type Student struct {
-	ID          string  `json:"id"`
-	Username    string  `json:"username"`
-	Email       string  `json:"email"`
-	PhoneNumber *string `json:"phoneNumber,omitempty"`
-	Birthdate   *string `json:"birthdate,omitempty"`
-	Gender      *string `json:"gender,omitempty"`
-	Location    *string `json:"location,omitempty"`
-	CreatedAt   string  `json:"createdAt"`
-	UpdatedAt   string  `json:"updatedAt"`
+type RegisterResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}
+
+type Subscription struct {
 }

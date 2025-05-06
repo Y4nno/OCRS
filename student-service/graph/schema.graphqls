@@ -2,36 +2,38 @@ type Query {
   healthCheck: String!
 }
 
-type Student {
-  id: ID!
-  username: String!
-  email: String!
-  phoneNumber: String
-  birthdate: String
-  gender: String
-  location: String
-  createdAt: String!
-  updatedAt: String!
+type Mutation {
+  register(input: RegisterInput!): RegisterResponse!
+  login(input: LoginInput!): LoginResponse!
 }
 
-input SignupInput {
-  username: String!
+type Subscription {
+  userLoggedIn: LoginEvent!
+}
+
+input RegisterInput {
+  fullName: String!
   email: String!
+  username: String!
   password: String!
-  phoneNumber: String
-  birthdate: String
-  gender: String
-  location: String
-  bio: String
-  interests: [String!]
 }
 
 input LoginInput {
-  email: String!
+  username: String!
   password: String!
 }
 
-type Mutation {
-  signup(input: SignupInput!): Student!
-  login(input: LoginInput!): String!
+type RegisterResponse {
+  success: Boolean!
+  message: String!
+}
+
+type LoginResponse {
+  success: Boolean!
+  message: String!
+}
+
+type LoginEvent {
+  username: String!
+  message: String!
 }

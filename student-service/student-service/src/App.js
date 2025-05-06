@@ -1,16 +1,10 @@
 import './App.css';
-import './custom.css'
+import './custom.css';
 import React from 'react';
-import Navbar from './components/Navbar';
-
+import RegisterLogin from './RegisterLogin';
 
 function App() {
-  return (
-      <div>
-        <Navbar />
-      </div>
-  );
+  return <RegisterLogin />;
 }
-
 
 export default App;
