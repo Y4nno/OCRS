@@ -1,7 +1,7 @@
-import './Cart.css';
+import './css/Cart.css';
 import React from 'react';
 import No_bar from './no_search_bar'
-import './navbar.css'
+import './css/navbar.css'
 
 export default function EmptyCart() {
     return (

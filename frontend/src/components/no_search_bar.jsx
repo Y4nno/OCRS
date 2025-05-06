@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import './navbar.css'
+import './css/navbar.css'
 
 export default function Navbar() {
     return (
@@ -11,7 +11,7 @@ export default function Navbar() {
             </a>
             <Link to ="/courses">
               Courses
-            </Link>
+            </Link> 
           </div>
           <div className="lionheart-container">
             <h1>LIONHEART</h1>

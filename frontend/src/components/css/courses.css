@@ -1,23 +1,19 @@
 /* Center the courses wrapper and add spacing */
-.course-container{
-  margin: 60px ;
-}
 
 .course-container h2{
-  font-size: 2.5rem;
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+
+.course-card {
+  width: 500px;
 }
 
 .courses-wrapper {
   display: flex;
   justify-content: center; /* Center the courses horizontally */
-  gap: 120px; /* Add spacing between the cards */
+  gap: 60px; /* Add spacing between the cards */
   flex-wrap: wrap; /* Ensure responsiveness */
-}
-
-/* Style for the course card */
-.course-card {
-  width: 650px; /* Set a fixed width for the cards */
-  height: 200px;
 }
 
 /* Style for the card */

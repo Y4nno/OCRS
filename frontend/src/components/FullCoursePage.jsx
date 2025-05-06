@@ -1,8 +1,8 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { gql, useQuery } from '@apollo/client';
-import './FullCoursePage.css'; // Import the CSS file for styling
-import No_bar from './no_search_bar'
+import './css/FullCoursePage.css'; // Import the CSS file for styling
+//import No_bar from './no_search_bar'
 
 // GraphQL Query to Fetch Course by ID
 const GET_COURSE_BY_ID = gql`
@@ -43,7 +43,7 @@ export default function FullCoursePage() {
   return (
     <div className="course-page">
       {/* Hero Section */}
-      <No_bar/>
+      {/*<No_bar/>*/}
       {/* Course Details Section */}
       <div className="course-details">
         <h2>Course Details</h2>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { gql, useQuery, useSubscription } from '@apollo/client'; // Import useSubscription
 import { Link } from 'react-router-dom';
-import './courses.css';
+import './css/courses.css';
 import courseImage from './Courseimage.jpg';
 import Navbar from './navbar';
 
@@ -22,17 +22,28 @@ const COURSE_CREATED = gql`
     courseCreated {
       id
       name
+      price
+      duration
+      description
+      status
       difficulty
+      instructor
+      createdAt
+      updatedAt
     }
   }
 `;
 
 export default function UserCourses() {
   // Fetch data using the useQuery hook
-  const { loading, error, data } = useQuery(GET_COURSES);
+  const { loading, error, data } = useQuery(GET_COURSES, {
+    //fetchPolicy: 'network-only',
+  });
 
   // Listen for real-time updates using the useSubscription hook
-  const { data: subscriptionData } = useSubscription(COURSE_CREATED);
+  const { data: subscriptionData } = useSubscription(COURSE_CREATED, {
+    //fetchPolicy: 'network-only',
+  });
 
   // Update the course list dynamically when a new course is created
   if (subscriptionData) {
@@ -55,7 +66,7 @@ export default function UserCourses() {
   return (
     <div>
       <Navbar />
-      <div className="container py-5">
+      <div className="container">
         <div className="course-container">
           <h2>COURSES</h2>
         </div>
@@ -83,7 +94,7 @@ export default function UserCourses() {
             </Link>
           ))}
         </div>
-      </div>
+        </div>
     </div>
   );
 }
