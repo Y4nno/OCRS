@@ -3,6 +3,7 @@
 package model
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"strconv"
@@ -26,6 +27,9 @@ type Registration struct {
 type RegistrationBatchResult struct {
 	Created          []*Registration `json:"created"`
 	SkippedCourseIDs []string        `json:"skippedCourseIDs"`
+}
+
+type Subscription struct {
 }
 
 type RegistrationStatus string
@@ -73,4 +77,18 @@ func (e *RegistrationStatus) UnmarshalGQL(v any) error {
 
 func (e RegistrationStatus) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *RegistrationStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e RegistrationStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }

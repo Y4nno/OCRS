@@ -50,3 +50,7 @@ type Query {
   registrations: [Registration]
   registrationsByStudent(studentID: String!): [Registration!]!
 }
+
+type Subscription {
+    registrationAdded: Registration!
+}

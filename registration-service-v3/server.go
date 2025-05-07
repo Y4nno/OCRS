@@ -1,3 +1,5 @@
+// filepath: d:\USER\Documents\RZ - School Files\Github\OCRS\registration-service-v3\server.go
+
 package main
 
 import (
@@ -5,6 +7,7 @@ import (
     "log"
     "net/http"
     "os"
+    "time"
 
     _ "github.com/lib/pq"
 
@@ -13,9 +16,11 @@ import (
     "github.com/99designs/gqlgen/graphql/handler/lru"
     "github.com/99designs/gqlgen/graphql/handler/transport"
     "github.com/99designs/gqlgen/graphql/playground"
-    "github.com/rs/cors" // Import the CORS package
+    "github.com/gorilla/websocket"
+    "github.com/rs/cors"
     "github.com/vektah/gqlparser/v2/ast"
     "registration.mod/registration-v3/graph"
+    "registration.mod/registration-v3/graph/model"
 )
 
 const defaultPort = "8080"
@@ -36,14 +41,27 @@ func main() {
     }
     defer db.Close()
 
-    // Test connection
     if err := db.Ping(); err != nil {
         log.Fatal("Database connection is not alive:", err)
     }
 
     log.Println("Connected to PostgreSQL successfully! 🎉")
 
-    srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{DB: db}}))
+    srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
+        DB:                db,
+        RegistrationAdded: make(chan *model.Registration, 1), // Buffered channel
+    }}))
+
+    srv.AddTransport(transport.Websocket{
+        KeepAlivePingInterval: 10 * time.Second,
+        Upgrader: websocket.Upgrader{
+            CheckOrigin: func(r *http.Request) bool {
+                // Allow requests from your frontend and GraphQL Playground
+                origin := r.Header.Get("Origin")
+                return origin == "http://localhost:3000" || origin == "http://localhost:8080"
+            },
+        },
+    })
 
     srv.AddTransport(transport.Options{})
     srv.AddTransport(transport.GET{})
@@ -56,17 +74,15 @@ func main() {
         Cache: lru.New[string](100),
     })
 
-    // Enable CORS
     corsHandler := cors.New(cors.Options{
-        AllowedOrigins:   []string{"http://localhost:3000"}, // Allow requests from your frontend
+        AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8080"},
         AllowCredentials: true,
         AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
         AllowedHeaders:   []string{"Content-Type", "Authorization"},
     })
 
-    // Wrap the server with the CORS handler
     http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-    http.Handle("/query", corsHandler.Handler(srv)) // Apply CORS to the GraphQL server
+    http.Handle("/query", corsHandler.Handler(srv))
 
     log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
     log.Fatal(http.ListenAndServe(":"+port, nil))

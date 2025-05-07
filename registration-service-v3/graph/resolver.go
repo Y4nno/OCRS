@@ -4,6 +4,7 @@ import (
   "context"
   "database/sql"
   "fmt"
+  "sync"
   "time"
 
   "github.com/google/uuid"
@@ -12,6 +13,8 @@ import (
 
 type Resolver struct {
   DB *sql.DB
+  RegistrationAdded chan *model.Registration
+  mu                sync.Mutex 
 }
 
 // === QUERY RESOLVERS ===
@@ -118,14 +121,17 @@ func (r *mutationResolver) CreateRegistration(
     return nil, fmt.Errorf("failed to create registration: %v", err)
   }
 
-  return &model.Registration{
+  newRegistration := &model.Registration{
     ID:         id,
     StudentID:  studentID,
     CourseID:   courseID,
     Status:     statusValue,
     EnrolledAt: enrolledAt,
     UpdatedAt:  updatedAt,
-  }, nil
+  }
+  r.RegistrationAdded <- newRegistration
+
+  return newRegistration, nil
 }
 
 func (r *mutationResolver) CreateRegistrations(
@@ -234,34 +240,46 @@ func (r *mutationResolver) DeleteRegistration(ctx context.Context, id string) (*
 }
 
 func (r *mutationResolver) DropCourse(ctx context.Context, studentID string, courseID string) (*model.Registration, error) {
-  updatedAt := time.Now().Format(time.RFC3339)
+    updatedAt := time.Now().Format(time.RFC3339)
 
-  result, err := r.Resolver.DB.Exec(`
-    UPDATE registrations
-    SET status = 'dropped', updated_at = $1
-    WHERE student_id = $2 AND course_id = $3 AND status IN ('pending', 'enrolled')`,
-    updatedAt, studentID, courseID)
-  if err != nil {
-    return nil, fmt.Errorf("failed to drop course: %v", err)
-  }
+    result, err := r.Resolver.DB.Exec(`
+        UPDATE registrations
+        SET status = 'dropped', updated_at = $1
+        WHERE student_id = $2 AND course_id = $3 AND status IN ('pending', 'enrolled')`,
+        updatedAt, studentID, courseID)
+    if err != nil {
+        return nil, fmt.Errorf("failed to drop course: %v", err)
+    }
 
-  rowsAffected, _ := result.RowsAffected()
-  if rowsAffected == 0 {
-    return nil, fmt.Errorf("no active registration found to drop for student %s and course %s", studentID, courseID)
-  }
+    rowsAffected, _ := result.RowsAffected()
+    if rowsAffected == 0 {
+        return nil, fmt.Errorf("no active registration found to drop for student %s and course %s", studentID, courseID)
+    }
 
-  row := r.Resolver.DB.QueryRow(`
-    SELECT id, student_id, course_id, status, enrolled_at, updated_at
-    FROM registrations 
-    WHERE student_id = $1 AND course_id = $2`, studentID, courseID)
+    row := r.Resolver.DB.QueryRow(`
+        SELECT id, student_id, course_id, status, enrolled_at, updated_at
+        FROM registrations 
+        WHERE student_id = $1 AND course_id = $2`, studentID, courseID)
 
-  var reg model.Registration
-  var status string
-  err = row.Scan(&reg.ID, &reg.StudentID, &reg.CourseID, &status, &reg.EnrolledAt, &reg.UpdatedAt)
-  if err != nil {
-    return nil, fmt.Errorf("failed to fetch updated registration: %v", err)
-  }
+    var reg model.Registration
+    var status string
+    err = row.Scan(&reg.ID, &reg.StudentID, &reg.CourseID, &status, &reg.EnrolledAt, &reg.UpdatedAt)
+    if err != nil {
+        return nil, fmt.Errorf("failed to fetch updated registration: %v", err)
+    }
 
-  reg.Status = model.RegistrationStatus(status)
-  return &reg, nil
+    reg.Status = model.RegistrationStatus(status)
+    return &reg, nil
+}
+
+func (r *subscriptionResolver) RegistrationAdded(ctx context.Context) (<-chan *model.Registration, error) {
+  updates := make(chan *model.Registration)
+
+  // Add the channel to the Resolver's subscription map
+  go func() {
+      <-ctx.Done() // Close the channel when the client disconnects
+      close(updates)
+  }()
+
+  return updates, nil
 }
