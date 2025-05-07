@@ -1,14 +1,33 @@
-type Query {
-  healthCheck: String!
-}
-
 type Mutation {
+  # Register a new user
   register(input: RegisterInput!): RegisterResponse!
+
+  # Login a user
   login(input: LoginInput!): LoginResponse!
+
+  # Update the profile of a student
+  updateProfile(input: UpdateProfileInput!): Profile!
 }
 
 type Subscription {
+  # Subscription for user login events
   userLoggedIn: LoginEvent!
+}
+
+type Query {
+  # Fetch the profile of a student by username
+  getProfile(username: String!): Profile!
+}
+
+type Profile {
+  fullName: String!
+  age: Int
+  bio: String
+  location: String
+  interests: [String]
+  phoneNumber: String
+  gender: String
+  email: String!
 }
 
 input RegisterInput {
@@ -21,6 +40,18 @@ input RegisterInput {
 input LoginInput {
   username: String!
   password: String!
+}
+
+input UpdateProfileInput {
+  username: String!
+  fullName: String
+  birthdate: String
+  bio: String
+  location: String
+  interests: [String]
+  phoneNumber: String
+  gender: String
+  email: String
 }
 
 type RegisterResponse {

@@ -1,0 +1,97 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;700&display=swap');
+
+/* Navbar container */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #7b3538; /* Dark red background */
+  padding: 10px 40px;
+  font-family: 'Instrument Sans', Arial, sans-serif; /* Ensure consistent font */
+}
+
+/* Links container */
+.navbar-links {
+  display: flex;
+  gap: 30px;
+}
+
+/* Navbar links */
+.navbar a {
+  color: white;
+  text-decoration: none;
+  font-size: 16px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+/* Active link styling */
+.navbar a.active {
+  background-color: #5a2829; /* Slightly darker red for active link */
+}
+
+/* Hover effect for links */
+.navbar a:hover {
+  background-color: #5a2829;
+}
+
+/* Sign-out button styling */
+.signout-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 16px;
+  font-family: 'Instrument Sans', Arial, sans-serif; /* Match font with navbar links */
+  cursor: pointer;
+  text-decoration: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.signout-btn:hover {
+  background-color: #5a2829; /* Same hover effect as links */
+}
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.navbar-username {
+  font-size: 16px;
+  color: white;
+  font-family: 'Instrument Sans', sans-serif;
+}
+
+body {
+  background-color: #FCF5F5;
+  font-family: 'Instrument Sans', sans-serif;
+  line-height: 1.5;
+}
+
+.profile-container {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  max-width: 600px;
+  margin: 20px auto;
+  font-family: 'Instrument Sans', sans-serif;
+}
+
+.profile-container h1 {
+  color: #7b3538;
+  margin-bottom: 20px;
+}
+
+.profile-container p {
+  margin: 10px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.profile-container strong {
+  color: #7b3538;
+}

@@ -1,81 +1,27 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import './Navbar.css';
 
 export default function Navbar() {
+  const username = localStorage.getItem('username'); // Retrieve username from localStorage
+
+  const handleSignOut = () => {
+    localStorage.removeItem('username'); // Clear username from localStorage
+    window.location.href = '/'; // Redirect to login page
+  };
+
   return (
-    <nav
-      className="navbar navbar-expand-lg"
-      style={{
-        backgroundColor: '#7B3538',
-        boxShadow: '0px 5px 5px rgba(0, 0, 0, 0.35)',
-      }}
-    >
-      <div className="container-fluid">
-        <Link className="navbar-brand" to="/">
-          <img src={require('./lion.png')} alt="lionheart" width="30" height="30" />
-        </Link>
-        <button
-          className="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span className="navbar-toggler-icon"></span>
-        </button>
-        <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav">
-            <li className="nav-item dropdown">
-              <a
-                className="nav-link dropdown-toggle"
-                href="#"
-                role="button"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
-                Payment Related
-              </a>
-              <ul className="dropdown-menu">
-                <li>
-                  <Link className="dropdown-item" to="/cart">
-                    Cart
-                  </Link>
-                </li>
-                <li>
-                  <Link className="dropdown-item" to="/history">
-                    History
-                  </Link>
-                </li>
-              </ul>
-            </li>
-            <li className="nav-item dropdown">
-              <a
-                className="nav-link dropdown-toggle"
-                href="#"
-                role="button"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
-                Student Related
-              </a>
-              <ul className="dropdown-menu">
-                <li>
-                  <Link className="dropdown-item" to="/cart">
-                    Cart
-                  </Link>
-                </li>
-                <li>
-                  <Link className="dropdown-item" to="/history">
-                    History
-                  </Link>
-                </li>
-              </ul>
-            </li>
-          </ul>
-        </div>
+    <div className="navbar">
+      <div className="navbar-links">
+        <a href="/home">Home</a>
+        <a href="/cart">Cart</a>
+        <a href="/receipt">Receipt</a>
+        <a href="/courses">My Courses</a>
+        <a href="/profile" className="active">My Profile</a>
       </div>
-    </nav>
+      <div className="navbar-user">
+        <span className="navbar-username">Hello, {username || 'Guest'}!</span>
+        <button onClick={handleSignOut} className="signout-btn">Sign out</button>
+      </div>
+    </div>
   );
 }

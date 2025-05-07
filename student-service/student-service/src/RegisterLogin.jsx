@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { gql, useMutation } from '@apollo/client';
+import { useNavigate } from 'react-router-dom';
 import './RegisterLogin.css';
 
+// GraphQL Mutation for Registration
 const REGISTER_MUTATION = gql`
   mutation Register($input: RegisterInput!) {
     register(input: $input) {
@@ -11,6 +13,7 @@ const REGISTER_MUTATION = gql`
   }
 `;
 
+// GraphQL Mutation for Login
 const LOGIN_MUTATION = gql`
   mutation Login($input: LoginInput!) {
     login(input: $input) {
@@ -23,10 +26,11 @@ const LOGIN_MUTATION = gql`
 export default function RegisterLogin() {
   const [activeTab, setActiveTab] = useState('register');
   const [showPassword, setShowPassword] = useState(false);
-
   const [register] = useMutation(REGISTER_MUTATION);
   const [login] = useMutation(LOGIN_MUTATION);
+  const navigate = useNavigate();
 
+  // Handle Registration
   const handleRegister = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -37,10 +41,22 @@ export default function RegisterLogin() {
       password: formData.get('password'),
     };
 
-    const { data } = await register({ variables: { input } });
-    alert(data.register.message);
+    try {
+      const { data } = await register({ variables: { input } });
+      if (data.register.success) {
+        alert(data.register.message);
+        localStorage.setItem('username', input.username); // Store username in localStorage
+        navigate('/profile'); // Redirect to profile page after successful registration
+      } else {
+        alert(data.register.message);
+      }
+    } catch (err) {
+      console.error('Error during registration:', err);
+      alert('Registration failed. Please try again.');
+    }
   };
 
+  // Handle Login
   const handleLogin = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -49,8 +65,18 @@ export default function RegisterLogin() {
       password: formData.get('password'),
     };
 
-    const { data } = await login({ variables: { input } });
-    alert(data.login.message);
+    try {
+      const { data } = await login({ variables: { input } });
+      if (data.login.success) {
+        localStorage.setItem('username', input.username); // Store username in localStorage
+        navigate('/profile'); // Redirect to profile page after successful login
+      } else {
+        alert(data.login.message);
+      }
+    } catch (err) {
+      console.error('Error during login:', err);
+      alert('Login failed. Please try again.');
+    }
   };
 
   return (
