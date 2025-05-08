@@ -32,7 +32,15 @@ export default function Profile() {
   });
 
   // Mutation to update profile
-  const [updateProfile] = useMutation(UPDATE_PROFILE);
+  const [updateProfile] = useMutation(UPDATE_PROFILE, {
+    refetchQueries: [
+      {
+        query: GET_PROFILE,
+        variables: { username }
+      }
+    ],
+    awaitRefetchQueries: true
+  });
 
   // State for editing and form data
   const [editing, setEditing] = useState(false);
