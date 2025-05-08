@@ -33,3 +33,31 @@
   .table tr {
     border-bottom: 1px solid #7B3538;
   }
+  
+  button.btn {
+    border-style: none !important;
+    box-shadow: rgba(0, 0, 0, 0.35) 0px 2px 5px;
+    color: #FBFCF5;
+  }
+
+  button.btn.btn-secondary.mx-1 {
+    background-color: #9b6264 !important;
+  }
+
+  button.btn.btn-info {
+    background-color: #7B3538;
+  }
+
+  button.btn.btn-primary.mx-1 {
+    background-color: #7B3538;
+  }
+
+  button.btn:hover {
+    background-color: #5A2224;
+    color: #FBFCF5;
+  }
+
+  .btn:disabled {
+    border-style: none !important;
+  }
+

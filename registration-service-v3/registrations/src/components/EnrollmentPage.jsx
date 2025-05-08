@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import '../custom.css'; // Import your custom CSS file
 
 export default function EnrollmentPage() {
     const [registrations, setRegistrations] = useState([]);
@@ -138,7 +139,7 @@ export default function EnrollmentPage() {
                     {currentRows.map((registration, index) => (
                         <tr key={index}>
                             <td>{registration.courseID}</td>
-                            <td>{registration.status}</td>
+                            <td>{registration.status.toUpperCase()}</td>
                             <td>
                                 {registration.status === 'enrolled' ? (
                                     <button
