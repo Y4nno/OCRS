@@ -64,6 +64,7 @@ func main() {
 			CheckOrigin: func(r *http.Request) bool {
 				// Allow requests from your frontend and GraphQL Playground
 				origin := r.Header.Get("Origin")
+				log.Println("Origin:", origin)
 				return origin == "http://localhost:3000" || origin == "http://localhost:8080"
 			},
 		},

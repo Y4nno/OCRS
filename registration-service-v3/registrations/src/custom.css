@@ -26,8 +26,10 @@
     background-color: #7B3538;
     color: #FBFCF5;
     font-weight: 200;
+    border-style: none !important;
   }
   .table td {
+    vertical-align: middle !important;
     background-color: #EEE7E7 !important;
   }
   .table tr {
@@ -44,8 +46,9 @@
     background-color: #9b6264 !important;
   }
 
-  button.btn.btn-info {
+  button.btn.btn-info, button.btn.btn-info:active  {
     background-color: #7B3538;
+    color: white;
   }
 
   button.btn.btn-primary.mx-1 {

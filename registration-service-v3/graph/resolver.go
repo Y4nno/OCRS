@@ -50,7 +50,7 @@ func (r *subscriptionResolver) RegistrationAdded(ctx context.Context) (<-chan *m
 func (r *queryResolver) Registration(ctx context.Context, id string) (*model.Registration, error) {
 	row := r.Resolver.DB.QueryRow(`
     SELECT id, student_id, course_id, status, enrolled_at, updated_at 
-    FROM registrations WHERE id = $1`, id)
+    FROM registrations WHERE id = $1 ASC`, id)
 
 	var reg model.Registration
 	var status string
@@ -68,7 +68,7 @@ func (r *queryResolver) Registration(ctx context.Context, id string) (*model.Reg
 func (r *queryResolver) Registrations(ctx context.Context) ([]*model.Registration, error) {
 	rows, err := r.Resolver.DB.Query(`
     SELECT id, student_id, course_id, status, enrolled_at, updated_at 
-    FROM registrations`)
+    FROM registrations ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query registrations: %v", err)
 	}
