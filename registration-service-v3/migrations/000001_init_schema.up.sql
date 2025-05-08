@@ -8,3 +8,6 @@ CREATE TABLE registrations (
     enrolled_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
+
+
+-- migrate -database "postgres://postgres:admin@localhost:5432/registration-service?sslmode=disable" -path migrations up
