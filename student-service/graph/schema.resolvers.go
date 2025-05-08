@@ -10,12 +10,9 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"log"
+	"student-service/graph/model"
 	"sync"
 	"time"
-
-	"student-service/graph/model"
-
-	"github.com/lib/pq"
 )
 
 // Helper function to hash passwords
@@ -30,9 +27,16 @@ var loginSubscribers = struct {
 	subscribers []chan *model.LoginEvent
 }{}
 
+// Global variable to manage profile subscribers
+var profileSubscribers = struct {
+	sync.Mutex
+	subscribers map[string][]chan *model.Profile
+}{
+	subscribers: make(map[string][]chan *model.Profile),
+}
+
 // Mutation: Register a new user
 func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInput) (*model.RegisterResponse, error) {
-	// Check if the username or email already exists
 	var exists bool
 	err := r.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM students WHERE username = $1 OR email = $2)", input.Username, input.Email).Scan(&exists)
 	if err != nil {
@@ -43,10 +47,7 @@ func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInp
 		return &model.RegisterResponse{Success: false, Message: "Username or email already exists"}, nil
 	}
 
-	// Hash the password
 	hashedPassword := hashPassword(input.Password)
-
-	// Insert the user into the database
 	_, err = r.DB.ExecContext(ctx, "INSERT INTO students (fullname, email, username, password) VALUES ($1, $2, $3, $4)", input.FullName, input.Email, input.Username, hashedPassword)
 	if err != nil {
 		log.Printf("Error inserting student: %v", err)
@@ -58,7 +59,6 @@ func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInp
 
 // Mutation: Login a user
 func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*model.LoginResponse, error) {
-	// Fetch the user by username
 	var hashedPassword string
 	err := r.DB.QueryRowContext(ctx, "SELECT password FROM students WHERE username = $1", input.Username).Scan(&hashedPassword)
 	if err != nil {
@@ -66,13 +66,11 @@ func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*
 		return &model.LoginResponse{Success: false, Message: "Incorrect username or password"}, nil
 	}
 
-	// Verify the password
 	if hashedPassword != hashPassword(input.Password) {
 		log.Printf("Invalid password for username: %s", input.Username)
 		return &model.LoginResponse{Success: false, Message: "Incorrect username or password"}, nil
 	}
 
-	// Notify subscribers of the login event
 	loginSubscribers.Lock()
 	for _, subscriber := range loginSubscribers.subscribers {
 		subscriber <- &model.LoginEvent{
@@ -105,7 +103,7 @@ func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.Update
 		input.FullName,
 		input.Bio,
 		input.Location,
-		pq.Array(input.Interests), // Use pq.Array to handle arrays
+		input.Interests,
 		input.PhoneNumber,
 		input.Gender,
 		input.Email,
@@ -114,7 +112,7 @@ func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.Update
 		&profile.FullName,
 		&profile.Bio,
 		&profile.Location,
-		pq.Array(&profile.Interests), // Ensure interests are returned as an array
+		&profile.Interests,
 		&profile.PhoneNumber,
 		&profile.Gender,
 		&profile.Email,
@@ -123,6 +121,12 @@ func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.Update
 		log.Printf("Error updating profile: %v", err)
 		return nil, err
 	}
+
+	profileSubscribers.Lock()
+	for _, subscriber := range profileSubscribers.subscribers[input.Username] {
+		subscriber <- &profile
+	}
+	profileSubscribers.Unlock()
 
 	return &profile, nil
 }
@@ -152,7 +156,6 @@ func (r *queryResolver) GetProfile(ctx context.Context, username string) (*model
 		return nil, err
 	}
 
-	// Calculate age if birthdate is available
 	if birthdate.Valid {
 		birthdateTime, _ := time.Parse("2006-01-02", birthdate.String)
 		age := int32(time.Now().Sub(birthdateTime).Hours() / 24 / 365)
@@ -160,6 +163,31 @@ func (r *queryResolver) GetProfile(ctx context.Context, username string) (*model
 	}
 
 	return &profile, nil
+}
+
+// Subscription: Profile updated
+func (r *subscriptionResolver) ProfileUpdated(ctx context.Context, username string) (<-chan *model.Profile, error) {
+	ch := make(chan *model.Profile, 1)
+
+	profileSubscribers.Lock()
+	profileSubscribers.subscribers[username] = append(profileSubscribers.subscribers[username], ch)
+	profileSubscribers.Unlock()
+
+	go func() {
+		<-ctx.Done()
+		profileSubscribers.Lock()
+		subscribers := profileSubscribers.subscribers[username]
+		for i, subscriber := range subscribers {
+			if subscriber == ch {
+				profileSubscribers.subscribers[username] = append(subscribers[:i], subscribers[i+1:]...)
+				break
+			}
+		}
+		profileSubscribers.Unlock()
+		close(ch)
+	}()
+
+	return ch, nil
 }
 
 // Subscription: User logged in

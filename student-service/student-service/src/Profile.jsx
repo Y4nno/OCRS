@@ -1,7 +1,21 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client';
+import { useQuery, useMutation, useSubscription, gql } from '@apollo/client';
 import { GET_PROFILE, UPDATE_PROFILE } from './graphql';
 import './Profile.css';
+
+const PROFILE_UPDATED = gql`
+  subscription ProfileUpdated($username: String!) {
+    profileUpdated(username: $username) {
+      fullName
+      bio
+      location
+      interests
+      phoneNumber
+      gender
+      email
+    }
+  }
+`;
 
 export default function Profile() {
   const username = localStorage.getItem('username'); // Retrieve username from localStorage
@@ -10,6 +24,11 @@ export default function Profile() {
   const { data, loading, error } = useQuery(GET_PROFILE, {
     variables: { username },
     skip: !username, // Skip the query if username is not available
+  });
+
+  // Subscription for profile updates
+  const { data: subscriptionData, loading: subscriptionLoading } = useSubscription(PROFILE_UPDATED, {
+    variables: { username },
   });
 
   // Mutation to update profile
@@ -21,10 +40,10 @@ export default function Profile() {
 
   // Handle cases where username is not available
   if (!username) return <p>Error: Username is not defined. Please log in again.</p>;
-  if (loading) return <p>Loading...</p>;
+  if (loading || subscriptionLoading) return <p>Loading...</p>;
   if (error) return <p>Error: {error.message}</p>;
 
-  const profile = data.getProfile;
+  const profile = subscriptionData?.profileUpdated || data.getProfile;
 
   // Enable editing mode and populate form data
   const handleEdit = () => {
@@ -33,7 +52,7 @@ export default function Profile() {
       fullName: profile.fullName || '',
       bio: profile.bio || '',
       location: profile.location || '',
-      interests: profile.interests ? profile.interests.join(', ') : '', // Convert array to comma-separated string
+      interests: profile.interests || '', // Convert array to comma-separated string
       phoneNumber: profile.phoneNumber || '',
       gender: profile.gender || '',
       email: profile.email || '',
@@ -52,10 +71,7 @@ export default function Profile() {
         fullName: formData.fullName,
         bio: formData.bio,
         location: formData.location,
-        interests: formData.interests
-          .replace(/[\[\]]/g, '') // Remove brackets if present
-          .split(',')
-          .map((interest) => interest.trim()), // Convert string to array and trim whitespace
+        interests: formData.interests,
         phoneNumber: formData.phoneNumber,
         gender: formData.gender,
         email: formData.email,
@@ -82,7 +98,7 @@ export default function Profile() {
       <p><strong>Age:</strong> {profile.age || 'N/A'}</p>
       <p><strong>Bio:</strong> {profile.bio || 'N/A'}</p>
       <p><strong>Location:</strong> {profile.location || 'N/A'}</p>
-      <p><strong>Interests:</strong> {profile.interests ? profile.interests.join(', ') : 'N/A'}</p>
+      <p><strong>Interests:</strong> {profile.interests || 'N/A'}</p>
       <p><strong>Gender:</strong> {profile.gender || 'N/A'}</p>
       {editing ? (
         <div className="profile-edit">

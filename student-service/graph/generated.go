@@ -86,7 +86,8 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
-		UserLoggedIn func(childComplexity int) int
+		ProfileUpdated func(childComplexity int, username string) int
+		UserLoggedIn   func(childComplexity int) int
 	}
 }
 
@@ -99,6 +100,7 @@ type QueryResolver interface {
 	GetProfile(ctx context.Context, username string) (*model.Profile, error)
 }
 type SubscriptionResolver interface {
+	ProfileUpdated(ctx context.Context, username string) (<-chan *model.Profile, error)
 	UserLoggedIn(ctx context.Context) (<-chan *model.LoginEvent, error)
 }
 
@@ -266,6 +268,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.RegisterResponse.Success(childComplexity), true
+
+	case "Subscription.profileUpdated":
+		if e.complexity.Subscription.ProfileUpdated == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_profileUpdated_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.ProfileUpdated(childComplexity, args["username"].(string)), true
 
 	case "Subscription.userLoggedIn":
 		if e.complexity.Subscription.UserLoggedIn == nil {
@@ -521,6 +535,29 @@ func (ec *executionContext) field_Query_getProfile_args(ctx context.Context, raw
 	return args, nil
 }
 func (ec *executionContext) field_Query_getProfile_argsUsername(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("username"))
+	if tmp, ok := rawArgs["username"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Subscription_profileUpdated_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Subscription_profileUpdated_argsUsername(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["username"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Subscription_profileUpdated_argsUsername(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (string, error) {
@@ -1194,9 +1231,9 @@ func (ec *executionContext) _Profile_interests(ctx context.Context, field graphq
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.([]*string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Profile_interests(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1626,6 +1663,90 @@ func (ec *executionContext) fieldContext_RegisterResponse_message(_ context.Cont
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_profileUpdated(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_profileUpdated(ctx, field)
+	if err != nil {
+		return nil
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().ProfileUpdated(rctx, fc.Args["username"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		return nil
+	}
+	return func(ctx context.Context) graphql.Marshaler {
+		select {
+		case res, ok := <-resTmp.(<-chan *model.Profile):
+			if !ok {
+				return nil
+			}
+			return graphql.WriterFunc(func(w io.Writer) {
+				w.Write([]byte{'{'})
+				graphql.MarshalString(field.Alias).MarshalGQL(w)
+				w.Write([]byte{':'})
+				ec.marshalOProfile2ᚖstudentᚑserviceᚋgraphᚋmodelᚐProfile(ctx, field.Selections, res).MarshalGQL(w)
+				w.Write([]byte{'}'})
+			})
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (ec *executionContext) fieldContext_Subscription_profileUpdated(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "fullName":
+				return ec.fieldContext_Profile_fullName(ctx, field)
+			case "age":
+				return ec.fieldContext_Profile_age(ctx, field)
+			case "bio":
+				return ec.fieldContext_Profile_bio(ctx, field)
+			case "location":
+				return ec.fieldContext_Profile_location(ctx, field)
+			case "interests":
+				return ec.fieldContext_Profile_interests(ctx, field)
+			case "phoneNumber":
+				return ec.fieldContext_Profile_phoneNumber(ctx, field)
+			case "gender":
+				return ec.fieldContext_Profile_gender(ctx, field)
+			case "email":
+				return ec.fieldContext_Profile_email(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Profile", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Subscription_profileUpdated_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -3778,7 +3899,7 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 			it.Location = data
 		case "interests":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("interests"))
-			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4154,6 +4275,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	}
 
 	switch fields[0].Name {
+	case "profileUpdated":
+		return ec._Subscription_profileUpdated(ctx, fields[0])
 	case "userLoggedIn":
 		return ec._Subscription_userLoggedIn(ctx, fields[0])
 	default:
@@ -4890,34 +5013,11 @@ func (ec *executionContext) marshalOInt2ᚖint32(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalOString2ᚕᚖstring(ctx context.Context, v any) ([]*string, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
-	var err error
-	res := make([]*string, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalOString2ᚖstring(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalOString2ᚕᚖstring(ctx context.Context, sel ast.SelectionSet, v []*string) graphql.Marshaler {
+func (ec *executionContext) marshalOProfile2ᚖstudentᚑserviceᚋgraphᚋmodelᚐProfile(ctx context.Context, sel ast.SelectionSet, v *model.Profile) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalOString2ᚖstring(ctx, sel, v[i])
-	}
-
-	return ret
+	return ec._Profile(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {

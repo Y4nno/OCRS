@@ -21,14 +21,14 @@ type Mutation struct {
 }
 
 type Profile struct {
-	FullName    string    `json:"fullName"`
-	Age         *int32    `json:"age,omitempty"`
-	Bio         *string   `json:"bio,omitempty"`
-	Location    *string   `json:"location,omitempty"`
-	Interests   []*string `json:"interests,omitempty"`
-	PhoneNumber *string   `json:"phoneNumber,omitempty"`
-	Gender      *string   `json:"gender,omitempty"`
-	Email       string    `json:"email"`
+	FullName    string  `json:"fullName"`
+	Age         *int32  `json:"age,omitempty"`
+	Bio         *string `json:"bio,omitempty"`
+	Location    *string `json:"location,omitempty"`
+	Interests   *string `json:"interests,omitempty"`
+	PhoneNumber *string `json:"phoneNumber,omitempty"`
+	Gender      *string `json:"gender,omitempty"`
+	Email       string  `json:"email"`
 }
 
 type Query struct {
@@ -50,13 +50,13 @@ type Subscription struct {
 }
 
 type UpdateProfileInput struct {
-	Username    string    `json:"username"`
-	FullName    *string   `json:"fullName,omitempty"`
-	Birthdate   *string   `json:"birthdate,omitempty"`
-	Bio         *string   `json:"bio,omitempty"`
-	Location    *string   `json:"location,omitempty"`
-	Interests   []*string `json:"interests,omitempty"`
-	PhoneNumber *string   `json:"phoneNumber,omitempty"`
-	Gender      *string   `json:"gender,omitempty"`
-	Email       *string   `json:"email,omitempty"`
+	Username    string  `json:"username"`
+	FullName    *string `json:"fullName,omitempty"`
+	Birthdate   *string `json:"birthdate,omitempty"`
+	Bio         *string `json:"bio,omitempty"`
+	Location    *string `json:"location,omitempty"`
+	Interests   *string `json:"interests,omitempty"`
+	PhoneNumber *string `json:"phoneNumber,omitempty"`
+	Gender      *string `json:"gender,omitempty"`
+	Email       *string `json:"email,omitempty"`
 }
