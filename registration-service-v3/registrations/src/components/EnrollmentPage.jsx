@@ -135,7 +135,7 @@ const EnrollmentPage = () => {
           onChange={(e) => setStatusFilter(e.target.value)}
         >
           <option value="">All Statuses</option>
-          <option value="pending">Pending</option>
+          {/*<option value="pending">Pending</option>*/}
           <option value="enrolled">Enrolled</option>
           <option value="completed">Completed</option>
           <option value="dropped">Dropped</option>

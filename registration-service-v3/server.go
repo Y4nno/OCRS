@@ -20,6 +20,7 @@ import (
 	"github.com/rs/cors"
 	"github.com/vektah/gqlparser/v2/ast"
 	"registration.mod/registration-v3/graph"
+	"registration.mod/registration-v3/mq"
 	//"registration.mod/registration-v3/graph/model"
 )
 
@@ -57,6 +58,8 @@ func main() {
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{
 		Resolvers: graph.NewResolver(db), // Use the constructor here
 	}))
+
+	go mq.StartEnrollmentConsumer(db)
 
 	srv.AddTransport(transport.Websocket{
 		KeepAlivePingInterval: 10 * time.Second,

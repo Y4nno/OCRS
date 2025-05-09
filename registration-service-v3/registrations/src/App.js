@@ -44,7 +44,6 @@ export default function App() {
         <ApolloProvider client={client}>
             <Navbar />
             <Routes>
-                <Route path="/" element={<EnrollmentPage />} />
                 <Route path="/enrollment" element={<EnrollmentPage />} />
             </Routes>
         </ApolloProvider>
