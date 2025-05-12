@@ -1,9 +1,9 @@
 package graph
 
 import (
-    "github.com/jackc/pgx/v4/pgxpool"
+	"database/sql"
 )
 
 type Resolver struct {
-    DB *pgxpool.Pool
+	DB *sql.DB
 }

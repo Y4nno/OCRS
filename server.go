@@ -1,12 +1,10 @@
 package main
 
 import (
-	"context"
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -14,9 +12,12 @@ import (
 
 	"example.com/Course-Service/v2/graph"
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
+	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/jackc/pgx/v4/pgxpool"
+	_ "github.com/lib/pq" // PostgreSQL driver
+	"github.com/vektah/gqlparser/v2/ast"
 )
 
 const defaultPort = "8080"
@@ -28,24 +29,30 @@ func main() {
 	}
 
 	// Configure database connection
-	pool, err := pgxpool.Connect(context.Background(), "postgres://postgres:123@localhost:5432/Course_db")
+	dsn := "postgres://postgres:admin@localhost:5432/course-service?sslmode=disable"
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer pool.Close()
+	defer db.Close()
 
-	corsHandler := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000"}, // Allow both React app and Playground
+	// Test database connection
+	if err := db.Ping(); err != nil {
+		log.Fatalf("Failed to ping database: %v", err)
+	}
+
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"},
 		AllowCredentials: true,
-		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},        // Allow these HTTP methods
-		AllowedHeaders:   []string{"Authorization", "Content-Type"}, // Allow these headers
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
 	})
 
 	// Initialize resolver
-	resolver := &graph.Resolver{DB: pool}
+	resolver := &graph.Resolver{DB: db}
 
 	// Configure GraphQL server
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{
 		Resolvers: resolver,
 	}))
 
@@ -55,51 +62,25 @@ func main() {
 			CheckOrigin: func(r *http.Request) bool {
 				origin := r.Header.Get("Origin")
 				log.Println("WebSocket request origin:", origin)
-				return true
+				return origin == "http://localhost:3000" || origin == "http://localhost:8080"
 			},
 		},
 	})
 
-	srv.AddTransport(transport.Options{}) // <--- Needed for Playground!
+	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})
-	srv.AddTransport(transport.MultipartForm{}) // In case of file uploads
 
-	// Add HTTP transport for queries and mutations
-	srv.AddTransport(transport.POST{})
+	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
 
-	// Set up CORS middleware
+	srv.Use(extension.Introspection{})
+	srv.Use(extension.AutomaticPersistedQuery{
+		Cache: lru.New[string](100),
+	})
 
-	// Attach handlers
-	http.Handle("/", playground.Handler("GraphQL Playground", "/query"))
-	http.Handle("/query", srv) // Attach the GraphQL server
+	http.Handle("/", c.Handler(playground.Handler("GraphQL playground", "/query")))
+	http.Handle("/query", c.Handler(srv))
 
-	// Start the server with graceful shutdown
-	srvAddr := ":" + port
-	server := &http.Server{
-		Addr:    srvAddr,
-		Handler: corsHandler.Handler(http.DefaultServeMux),
-	}
-
-	go func() {
-		log.Printf("Server running on http://localhost:%s", port)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Failed to start server: %v", err)
-		}
-	}()
-
-	// Wait for termination signal to gracefully shut down the server
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
-	<-stop
-
-	log.Println("Shutting down server...")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("Server forced to shutdown: %v", err)
-	}
-
-	log.Println("Server exited gracefully")
+	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

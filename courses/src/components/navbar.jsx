@@ -15,9 +15,9 @@ function Navbar() {
                         <Link className="nav-link" to="/">Home</Link>
                     </li>
                     <li className="nav-item dropdown">
-                        <a className="nav-link" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <Link className="nav-link" to="/" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Courses
-                        </a>
+                        </Link>
                     </li>
                 </ul>
 

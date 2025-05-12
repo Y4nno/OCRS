@@ -35,7 +35,6 @@ type Course {
 }
 
 input CourseInput {
-  id: ID!
   name: String!
   price: Float!
   duration: String!

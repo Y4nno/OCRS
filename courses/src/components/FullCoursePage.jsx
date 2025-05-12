@@ -22,6 +22,7 @@ const GET_COURSE_BY_ID = gql`
   }
 `;
 
+
 export default function FullCoursePage() {
   const { id } = useParams(); // Get the course ID from the URL
   const { loading, error, data } = useQuery(GET_COURSE_BY_ID, {
