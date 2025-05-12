@@ -7,16 +7,15 @@ import (
 	"os"
 	"time"
 
-	"github.com/gorilla/websocket"
-	"github.com/rs/cors"
-
 	"example.com/Course-Service/v2/graph"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/gorilla/websocket"
 	_ "github.com/lib/pq" // PostgreSQL driver
+	"github.com/rs/cors"
 	"github.com/vektah/gqlparser/v2/ast"
 )
 

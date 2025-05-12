@@ -56,13 +56,11 @@ const COURSE_DELETED_BY_NAME = gql`
   }
 `;
 
-
 export default function UserCourses() {
   const { loading, error, data } = useQuery(GET_COURSES);
   const { data: subscriptionData } = useSubscription(COURSE_CREATED);
   const { data: courseUpdatedData } = useSubscription(COURSE_UPDATED);
   const { data: courseDeletedData } = useSubscription(COURSE_DELETED_BY_NAME);
-
 
   const [courses, setCourses] = useState([]);
 
