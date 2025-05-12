@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"log"
+	"os"
 
 	"github.com/go-stomp/stomp"
 )
@@ -17,19 +18,27 @@ type CartMessage struct {
 }
 
 func PublishCartEvent(db *sql.DB, msg CartMessage) error {
-	conn, err := stomp.Dial("tcp", "localhost:61613", stomp.ConnOpt.HeartBeat(0, 0))
+	// Get STOMP broker address from environment variable
+	brokerAddr := os.Getenv("STOMP_BROKER_ADDR")
+	if brokerAddr == "" {
+		brokerAddr = "localhost:61613" // Default to localhost if not set
+	}
+
+	conn, err := stomp.Dial("tcp", brokerAddr, stomp.ConnOpt.HeartBeat(0, 0))
 	if err != nil {
+		log.Printf("Failed to connect to STOMP broker at %s: %v", brokerAddr, err)
 		return err
 	}
 	defer conn.Disconnect()
 
 	data, err := json.Marshal(msg)
 	if err != nil {
+		log.Println("Failed to marshal cart message:", err)
 		return err
 	}
 
 	err = conn.Send(
-		"/queue/cart.queue",
+		"/queue/cart_events",
 		"application/json",
 		data,
 		stomp.SendOpt.Receipt,

@@ -1,10 +1,8 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { gql, useQuery } from '@apollo/client';
-import './css/FullCoursePage.css'; // Import the CSS file for styling
-//import No_bar from './no_search_bar'
+import './css/FullCoursePage.css';
 
-// GraphQL Query to Fetch Course by ID
 const GET_COURSE_BY_ID = gql`
   query GetCourseById($courseId: ID!) {
     course(courseId: $courseId) {
@@ -22,32 +20,52 @@ const GET_COURSE_BY_ID = gql`
   }
 `;
 
-
 export default function FullCoursePage() {
-  const { id } = useParams(); // Get the course ID from the URL
+  const { id } = useParams();
   const { loading, error, data } = useQuery(GET_COURSE_BY_ID, {
     variables: { courseId: id },
   });
 
-  if (loading) return <p>Loading...</p>;
-  if (error) {
-    console.error("Error fetching course:", error);
-    return <p>Error: {error.message}</p>;
-  }
+  const handleAddToCart = async () => {
+    const studentId = "12345"; // Replace with real ID from context/auth
 
-  if (!data || !data.course) {
-    return <p>Course not found.</p>;
-  }
+    try {
+      const response = await fetch("http://localhost:8080/cart/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          studentId: studentId,
+          courseId: data.course.id,
+          courseName: data.course.name,
+          price: data.course.price,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add to cart");
+      }
+
+      alert("Added to cart!");
+    } catch (err) {
+      console.error("Error adding to cart:", err);
+      alert("Something went wrong");
+    }
+  };
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>Error: {error.message}</p>;
 
   const course = data.course;
 
   return (
     <div className="course-page">
-      {/* Hero Section */}
-      {/*<No_bar/>*/}
-      {/* Course Details Section */}
       <div className="course-details">
-        <h2>Course Details</h2>
+        <div className="fix-alignment">
+          <h2>Course Details</h2>
+          <button className="btn primary-btn" onClick={handleAddToCart}>Add to Cart</button>
+        </div>
         <ul>
           <li><strong>Duration:</strong> {course.duration}</li>
           <li><strong>Difficulty:</strong> {course.difficulty}</li>
@@ -57,13 +75,11 @@ export default function FullCoursePage() {
         </ul>
       </div>
 
-      {/* Course Description Section */}
       <div className="course-description">
         <h2>Course Description</h2>
         <p>{course.description}</p>
       </div>
 
-      {/* Course Materials Section */}
       <div className="course-materials">
         <h2>Course Materials</h2>
         <ul>

@@ -26,7 +26,7 @@
   background: #ffffff;
   border: 1px solid #ccc;
   border-radius: 5px;
-  max-width: 1000px; /* Adjust width for landscape layout */
+  max-width: 800px; /* Adjust width for landscape layout */
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
@@ -103,4 +103,24 @@ body, html {
   height: 100%;
   font-family: Arial, sans-serif; /* Ensure consistent font */
   line-height: 1.6; /* Set a global line height */
+}
+
+button.btn {
+  background-color: #7B3538;
+  border-style: none;
+  color: #FBFCF5;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 2px 5px;
+}
+
+button.btn.btn-primary {
+  background-color: #7B3538 !important;
+}
+
+button.btn:hover {
+  background-color: #5A2224;
+  color: #FBFCF5;
+}
+
+.btn:disabled {
+  border-color: #fbfcf500 !important;
 }

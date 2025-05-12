@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"example.com/Course-Service/v2/graph"
+	"example.com/Course-Service/v2/handlers"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
@@ -76,6 +77,10 @@ func main() {
 	srv.Use(extension.AutomaticPersistedQuery{
 		Cache: lru.New[string](100),
 	})
+
+	http.Handle("/cart/add", c.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handlers.AddToCartHandler(db, w, r)
+	})))
 
 	http.Handle("/", c.Handler(playground.Handler("GraphQL playground", "/query")))
 	http.Handle("/query", c.Handler(srv))
