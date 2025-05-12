@@ -15,6 +15,7 @@ require (
 require (
 	github.com/agnivade/levenshtein v1.2.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
+	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
