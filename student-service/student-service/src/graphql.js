@@ -12,6 +12,7 @@ export const GET_PROFILE = gql`
       phoneNumber
       gender
       email
+      birthdate
     }
   }
 `;
@@ -28,6 +29,7 @@ export const UPDATE_PROFILE = gql`
       phoneNumber
       gender
       email
+      birthdate
     }
   }
 `;

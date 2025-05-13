@@ -22,13 +22,14 @@ type Mutation struct {
 
 type Profile struct {
 	FullName    string  `json:"fullName"`
-	Age         *int32  `json:"age,omitempty"`
+	Age         int32   `json:"age"`
 	Bio         *string `json:"bio,omitempty"`
 	Location    *string `json:"location,omitempty"`
 	Interests   *string `json:"interests,omitempty"`
 	PhoneNumber *string `json:"phoneNumber,omitempty"`
 	Gender      *string `json:"gender,omitempty"`
 	Email       string  `json:"email"`
+	Birthdate   *string `json:"birthdate,omitempty"`
 }
 
 type Query struct {

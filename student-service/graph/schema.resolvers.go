@@ -7,7 +7,6 @@ package graph
 import (
 	"context"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
 	"log"
 	"student-service/graph/model"
@@ -15,24 +14,43 @@ import (
 	"time"
 )
 
+// Global variables for managing subscriptions
+var loginSubscribers = struct {
+	sync.Mutex
+	subscribers []chan *model.LoginEvent
+}{}
+
+var profileSubscribers = struct {
+	sync.Mutex
+	subscribers map[string][]chan *model.Profile
+}{
+	subscribers: make(map[string][]chan *model.Profile),
+}
+
 // Helper function to hash passwords
 func hashPassword(password string) string {
 	hash := sha256.Sum256([]byte(password))
 	return hex.EncodeToString(hash[:])
 }
 
-// Global variable to manage login subscribers
-var loginSubscribers = struct {
-	sync.Mutex
-	subscribers []chan *model.LoginEvent
-}{}
+// Helper function to calculate age from birthdate
+func calculateAge(birthdate *string) int {
+	if birthdate == nil {
+		return 0
+	}
 
-// Global variable to manage profile subscribers
-var profileSubscribers = struct {
-	sync.Mutex
-	subscribers map[string][]chan *model.Profile
-}{
-	subscribers: make(map[string][]chan *model.Profile),
+	parsedBirthdate, err := time.Parse("2006-01-02", *birthdate)
+	if err != nil {
+		return 0
+	}
+
+	now := time.Now()
+	age := now.Year() - parsedBirthdate.Year()
+	if now.YearDay() < parsedBirthdate.YearDay() {
+		age--
+	}
+
+	return age
 }
 
 // Mutation: Register a new user
@@ -93,9 +111,10 @@ func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.Update
             interests = COALESCE($4, interests),
             phone_number = COALESCE($5, phone_number),
             gender = COALESCE($6, gender),
-            email = COALESCE($7, email)
-        WHERE username = $8
-        RETURNING fullname, bio, location, interests, phone_number, gender, email
+            email = COALESCE($7, email),
+            birthdate = COALESCE($8, birthdate) -- Include birthdate
+        WHERE username = $9
+        RETURNING fullname, bio, location, interests, phone_number, gender, email, birthdate
     `
 
 	var profile model.Profile
@@ -107,6 +126,7 @@ func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.Update
 		input.PhoneNumber,
 		input.Gender,
 		input.Email,
+		input.Birthdate, // Include birthdate in the query
 		input.Username,
 	).Scan(
 		&profile.FullName,
@@ -116,6 +136,7 @@ func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.Update
 		&profile.PhoneNumber,
 		&profile.Gender,
 		&profile.Email,
+		&profile.Birthdate, // Scan birthdate
 	)
 	if err != nil {
 		log.Printf("Error updating profile: %v", err)
@@ -133,35 +154,26 @@ func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.Update
 
 // Query: Fetch the profile of a student by username
 func (r *queryResolver) GetProfile(ctx context.Context, username string) (*model.Profile, error) {
-	var profile model.Profile
-	var birthdate sql.NullString
-
 	query := `
-        SELECT fullname, email, birthdate, bio, location, interests, phone_number, gender
+        SELECT fullname, bio, location, interests, phone_number, gender, email, birthdate
         FROM students
         WHERE username = $1
     `
+	var profile model.Profile
 	err := r.DB.QueryRowContext(ctx, query, username).Scan(
 		&profile.FullName,
-		&profile.Email,
-		&birthdate,
 		&profile.Bio,
 		&profile.Location,
 		&profile.Interests,
 		&profile.PhoneNumber,
 		&profile.Gender,
+		&profile.Email,
+		&profile.Birthdate, // Ensure this is included
 	)
 	if err != nil {
 		log.Printf("Error fetching profile: %v", err)
 		return nil, err
 	}
-
-	if birthdate.Valid {
-		birthdateTime, _ := time.Parse("2006-01-02", birthdate.String)
-		age := int32(time.Now().Sub(birthdateTime).Hours() / 24 / 365)
-		profile.Age = &age
-	}
-
 	return &profile, nil
 }
 

@@ -68,6 +68,7 @@ type ComplexityRoot struct {
 	Profile struct {
 		Age         func(childComplexity int) int
 		Bio         func(childComplexity int) int
+		Birthdate   func(childComplexity int) int
 		Email       func(childComplexity int) int
 		FullName    func(childComplexity int) int
 		Gender      func(childComplexity int) int
@@ -200,6 +201,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Profile.Bio(childComplexity), true
+
+	case "Profile.birthdate":
+		if e.complexity.Profile.Birthdate == nil {
+			break
+		}
+
+		return e.complexity.Profile.Birthdate(childComplexity), true
 
 	case "Profile.email":
 		if e.complexity.Profile.Email == nil {
@@ -1023,6 +1031,8 @@ func (ec *executionContext) fieldContext_Mutation_updateProfile(ctx context.Cont
 				return ec.fieldContext_Profile_gender(ctx, field)
 			case "email":
 				return ec.fieldContext_Profile_email(ctx, field)
+			case "birthdate":
+				return ec.fieldContext_Profile_birthdate(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Profile", field.Name)
 		},
@@ -1106,11 +1116,14 @@ func (ec *executionContext) _Profile_age(ctx context.Context, field graphql.Coll
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*int32)
+	res := resTmp.(int32)
 	fc.Result = res
-	return ec.marshalOInt2ᚖint32(ctx, field.Selections, res)
+	return ec.marshalNInt2int32(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Profile_age(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1375,6 +1388,47 @@ func (ec *executionContext) fieldContext_Profile_email(_ context.Context, field 
 	return fc, nil
 }
 
+func (ec *executionContext) _Profile_birthdate(ctx context.Context, field graphql.CollectedField, obj *model.Profile) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Profile_birthdate(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Birthdate, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Profile_birthdate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_getProfile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_getProfile(ctx, field)
 	if err != nil {
@@ -1430,6 +1484,8 @@ func (ec *executionContext) fieldContext_Query_getProfile(ctx context.Context, f
 				return ec.fieldContext_Profile_gender(ctx, field)
 			case "email":
 				return ec.fieldContext_Profile_email(ctx, field)
+			case "birthdate":
+				return ec.fieldContext_Profile_birthdate(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Profile", field.Name)
 		},
@@ -1733,6 +1789,8 @@ func (ec *executionContext) fieldContext_Subscription_profileUpdated(ctx context
 				return ec.fieldContext_Profile_gender(ctx, field)
 			case "email":
 				return ec.fieldContext_Profile_email(ctx, field)
+			case "birthdate":
+				return ec.fieldContext_Profile_birthdate(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Profile", field.Name)
 		},
@@ -4108,6 +4166,9 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "age":
 			out.Values[i] = ec._Profile_age(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "bio":
 			out.Values[i] = ec._Profile_bio(ctx, field, obj)
 		case "location":
@@ -4123,6 +4184,8 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "birthdate":
+			out.Values[i] = ec._Profile_birthdate(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4634,6 +4697,21 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) unmarshalNInt2int32(ctx context.Context, v any) (int32, error) {
+	res, err := graphql.UnmarshalInt32(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int32(ctx context.Context, sel ast.SelectionSet, v int32) graphql.Marshaler {
+	res := graphql.MarshalInt32(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) marshalNLoginEvent2studentᚑserviceᚋgraphᚋmodelᚐLoginEvent(ctx context.Context, sel ast.SelectionSet, v model.LoginEvent) graphql.Marshaler {
 	return ec._LoginEvent(ctx, sel, &v)
 }
@@ -4994,22 +5072,6 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	res := graphql.MarshalBoolean(*v)
-	return res
-}
-
-func (ec *executionContext) unmarshalOInt2ᚖint32(ctx context.Context, v any) (*int32, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := graphql.UnmarshalInt32(v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOInt2ᚖint32(ctx context.Context, sel ast.SelectionSet, v *int32) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	res := graphql.MarshalInt32(*v)
 	return res
 }
 

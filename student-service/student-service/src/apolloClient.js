@@ -3,24 +3,21 @@ import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
 import { getMainDefinition } from '@apollo/client/utilities';
 
+// HTTP Link for queries and mutations
 const httpLink = new HttpLink({
-  uri: 'http://localhost:8080/query',
-  credentials: 'same-origin',
+  uri: 'http://localhost:8080/query', // Ensure this matches your server's GraphQL endpoint
+  credentials: 'same-origin', // Include credentials if needed
 });
 
+// WebSocket Link for subscriptions
 const wsLink = new GraphQLWsLink(
   createClient({
-    url: 'ws://localhost:8080/query',
-    connectionParams: {},
-    shouldRetry: true,
-    retryAttempts: 5,
-    on: {
-      connected: () => console.log('WebSocket connected'),
-      error: (err) => console.error('WebSocket error:', err),
-    },
+    url: 'ws://localhost:8080/query', // Ensure this matches your server's WebSocket endpoint
+    connectionParams: {}, // Add any required connection parameters here
   })
 );
 
+// Split Link to route queries/mutations to HTTP and subscriptions to WebSocket
 const splitLink = split(
   ({ query }) => {
     const definition = getMainDefinition(query);
@@ -33,6 +30,7 @@ const splitLink = split(
   httpLink
 );
 
+// Apollo Client configuration
 const client = new ApolloClient({
   link: splitLink,
   cache: new InMemoryCache({
@@ -46,21 +44,21 @@ const client = new ApolloClient({
           interests: { merge: true },
           phoneNumber: { merge: true },
           gender: { merge: true },
-          email: { merge: true }
-        }
-      }
-    }
+          email: { merge: true },
+        },
+      },
+    },
   }),
   defaultOptions: {
     watchQuery: {
-      fetchPolicy: 'network-only',
+      fetchPolicy: 'network-only', // Always fetch fresh data
       nextFetchPolicy: 'cache-first',
     },
     query: {
-      fetchPolicy: 'network-only',
+      fetchPolicy: 'network-only', // Always fetch fresh data
     },
     mutate: {
-      fetchPolicy: 'no-cache',
+      fetchPolicy: 'no-cache', // Avoid caching mutation results
     },
   },
 });

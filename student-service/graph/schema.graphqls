@@ -22,13 +22,14 @@ type Query {
 
 type Profile {
   fullName: String!
-  age: Int
+  age: Int! # Add age as a calculated field
   bio: String
   location: String
   interests: String
   phoneNumber: String
   gender: String
   email: String!
+  birthdate: String # Add birthdate field
 }
 
 input RegisterInput {
@@ -46,7 +47,7 @@ input LoginInput {
 input UpdateProfileInput {
   username: String!
   fullName: String
-  birthdate: String
+  birthdate: String # Allow updating birthdate
   bio: String
   location: String
   interests: String
