@@ -8,8 +8,9 @@ CREATE TABLE students (
     gender VARCHAR(50),
     location VARCHAR(255),
     bio TEXT,
-    interests TEXT[], -- Array of strings to store interests
+    interests VARCHAR(255), -- Array of strings to store interests
     hashed_password VARCHAR(255) NOT NULL, -- Renamed from 'password' to 'hashed_password'
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    fullname VARCHAR(255) NOT NULL
 );
