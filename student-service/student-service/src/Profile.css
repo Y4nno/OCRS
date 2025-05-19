@@ -70,7 +70,7 @@
   .profile-edit {
     width: 100%;
     max-width: 800px;
-   
+    background-color: #fff;
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
@@ -79,16 +79,16 @@
     gap: 10px;
   }
   
-  .profile-edit input {
+  /* .profile-edit input {
     padding: 10px;
     font-size: 14px;
     border: 1px solid #ccc;
     border-radius: 5px;
     width: 100%;
     display: flex;
-  }
+  } */
   
-  .profile-edit button {
+  /* .profile-edit button {
     align-self: flex-end;
     padding: 10px 20px;
     background-color: #7b3538;
@@ -100,9 +100,9 @@
   
   .profile-edit button:hover {
     background-color: #5a2829;
-  }
+  } */
 
-  .profile-view button{
+  /* .profile-view button{
     margin-top: 20px;
     padding: 10px 20px;
     background-color: #7b3538;
@@ -115,4 +115,14 @@
 
   .profile-view button:hover {
     background-color: #5a2829;
+  } */
+
+  .btn-outline-custom {
+    color: #5a2829; /* Custom text color */
+    border-color: #5a2829; /* Custom border color */
+  }
+  
+  .btn-outline-custom:hover {
+    background-color: #5a2829; /* Custom background color on hover */
+    color: white; /* Text color on hover */
   }

@@ -45,9 +45,10 @@ input LoginInput {
 }
 
 input UpdateProfileInput {
-  username: String!
+  currentUsername: String! # The current username to identify the user
+  newUsername: String       # The new username (optional)
   fullName: String
-  birthdate: String # Allow updating birthdate
+  birthdate: String
   bio: String
   location: String
   interests: String

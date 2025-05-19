@@ -3913,20 +3913,27 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"username", "fullName", "birthdate", "bio", "location", "interests", "phoneNumber", "gender", "email"}
+	fieldsInOrder := [...]string{"currentUsername", "newUsername", "fullName", "birthdate", "bio", "location", "interests", "phoneNumber", "gender", "email"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "username":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("username"))
+		case "currentUsername":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("currentUsername"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Username = data
+			it.CurrentUsername = data
+		case "newUsername":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newUsername"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.NewUsername = data
 		case "fullName":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fullName"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)

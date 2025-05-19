@@ -7,51 +7,15 @@ package graph
 import (
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
+	"fmt"
 	"log"
-	"student-service/graph/model"
 	"sync"
 	"time"
+
+	"student-service/graph/model" // Replace with the actual path to your model package
 )
-
-// Global variables for managing subscriptions
-var loginSubscribers = struct {
-	sync.Mutex
-	subscribers []chan *model.LoginEvent
-}{}
-
-var profileSubscribers = struct {
-	sync.Mutex
-	subscribers map[string][]chan *model.Profile
-}{
-	subscribers: make(map[string][]chan *model.Profile),
-}
-
-// Helper function to hash passwords
-func hashPassword(password string) string {
-	hash := sha256.Sum256([]byte(password))
-	return hex.EncodeToString(hash[:])
-}
-
-// Helper function to calculate age from birthdate
-func calculateAge(birthdate *string) int {
-	if birthdate == nil {
-		return 0
-	}
-
-	parsedBirthdate, err := time.Parse("2006-01-02", *birthdate)
-	if err != nil {
-		return 0
-	}
-
-	now := time.Now()
-	age := now.Year() - parsedBirthdate.Year()
-	if now.YearDay() < parsedBirthdate.YearDay() {
-		age--
-	}
-
-	return age
-}
 
 // Mutation: Register a new user
 func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInput) (*model.RegisterResponse, error) {
@@ -105,20 +69,22 @@ func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*
 func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*model.Profile, error) {
 	query := `
         UPDATE students
-        SET fullname = COALESCE($1, fullname),
-            bio = COALESCE($2, bio),
-            location = COALESCE($3, location),
-            interests = COALESCE($4, interests),
-            phone_number = COALESCE($5, phone_number),
-            gender = COALESCE($6, gender),
-            email = COALESCE($7, email),
-            birthdate = COALESCE($8, birthdate) -- Include birthdate
-        WHERE username = $9
-        RETURNING fullname, bio, location, interests, phone_number, gender, email, birthdate
+        SET username = COALESCE($1, username),
+            fullname = COALESCE($2, fullname),
+            bio = COALESCE($3, bio),
+            location = COALESCE($4, location),
+            interests = COALESCE($5, interests),
+            phone_number = COALESCE($6, phone_number),
+            gender = COALESCE($7, gender),
+            email = COALESCE($8, email),
+            birthdate = COALESCE($9, birthdate)
+        WHERE username = $10
+        RETURNING username, fullname, bio, location, interests, phone_number, gender, email, birthdate
     `
 
 	var profile model.Profile
 	err := r.DB.QueryRowContext(ctx, query,
+		input.NewUsername, // New username
 		input.FullName,
 		input.Bio,
 		input.Location,
@@ -126,9 +92,10 @@ func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.Update
 		input.PhoneNumber,
 		input.Gender,
 		input.Email,
-		input.Birthdate, // Include birthdate in the query
-		input.Username,
+		input.Birthdate,
+		input.CurrentUsername, // Current username
 	).Scan(
+		&profile.Username,
 		&profile.FullName,
 		&profile.Bio,
 		&profile.Location,
@@ -136,15 +103,16 @@ func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.Update
 		&profile.PhoneNumber,
 		&profile.Gender,
 		&profile.Email,
-		&profile.Birthdate, // Scan birthdate
+		&profile.Birthdate,
 	)
 	if err != nil {
 		log.Printf("Error updating profile: %v", err)
 		return nil, err
 	}
 
+	// Notify subscribers about the profile update
 	profileSubscribers.Lock()
-	for _, subscriber := range profileSubscribers.subscribers[input.Username] {
+	for _, subscriber := range profileSubscribers.subscribers[input.CurrentUsername] {
 		subscriber <- &profile
 	}
 	profileSubscribers.Unlock()
@@ -155,12 +123,16 @@ func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.Update
 // Query: Fetch the profile of a student by username
 func (r *queryResolver) GetProfile(ctx context.Context, username string) (*model.Profile, error) {
 	query := `
-        SELECT fullname, bio, location, interests, phone_number, gender, email, birthdate
+        SELECT username, fullname, bio, location, interests, phone_number, gender, email, birthdate
         FROM students
         WHERE username = $1
     `
+
 	var profile model.Profile
+	var birthdate sql.NullString // Handle nullable birthdate
+
 	err := r.DB.QueryRowContext(ctx, query, username).Scan(
+		&profile.Username,
 		&profile.FullName,
 		&profile.Bio,
 		&profile.Location,
@@ -168,12 +140,23 @@ func (r *queryResolver) GetProfile(ctx context.Context, username string) (*model
 		&profile.PhoneNumber,
 		&profile.Gender,
 		&profile.Email,
-		&profile.Birthdate, // Ensure this is included
+		&birthdate,
 	)
-	if err != nil {
+	if err == sql.ErrNoRows {
+		log.Printf("No profile found for username: %s", username)
+		return nil, fmt.Errorf("no profile found for username: %s", username)
+	} else if err != nil {
 		log.Printf("Error fetching profile: %v", err)
 		return nil, err
 	}
+
+	// Handle nullable birthdate
+	if birthdate.Valid {
+		profile.Birthdate = &birthdate.String // Assign a pointer to the string value
+	} else {
+		profile.Birthdate = nil // Set to nil if null
+	}
+
 	return &profile, nil
 }
 
@@ -182,6 +165,9 @@ func (r *subscriptionResolver) ProfileUpdated(ctx context.Context, username stri
 	ch := make(chan *model.Profile, 1)
 
 	profileSubscribers.Lock()
+	if _, exists := profileSubscribers.subscribers[username]; !exists {
+		profileSubscribers.subscribers[username] = []chan *model.Profile{}
+	}
 	profileSubscribers.subscribers[username] = append(profileSubscribers.subscribers[username], ch)
 	profileSubscribers.Unlock()
 
@@ -238,3 +224,43 @@ func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionRes
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//     it when you're done.
+//   - You have helper methods in this file. Move them out to keep these resolver files clean.
+var loginSubscribers = struct {
+	sync.Mutex
+	subscribers []chan *model.LoginEvent
+}{}
+var profileSubscribers = struct {
+	sync.Mutex
+	subscribers map[string][]chan *model.Profile
+}{
+	subscribers: make(map[string][]chan *model.Profile),
+}
+
+func hashPassword(password string) string {
+	hash := sha256.Sum256([]byte(password))
+	return hex.EncodeToString(hash[:])
+}
+func calculateAge(birthdate *string) int {
+	if birthdate == nil {
+		return 0
+	}
+
+	parsedBirthdate, err := time.Parse("2006-01-02", *birthdate)
+	if err != nil {
+		return 0
+	}
+
+	now := time.Now()
+	age := now.Year() - parsedBirthdate.Year()
+	if now.YearDay() < parsedBirthdate.YearDay() {
+		age--
+	}
+
+	return age
+}
