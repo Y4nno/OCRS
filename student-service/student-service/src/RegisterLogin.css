@@ -115,3 +115,18 @@
 .submit-btn:hover {
   background-color: #5a2628;
 }
+
+.forgot-password {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.forgot-password-link {
+  color: #5a2829; /* Match your theme color */
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.forgot-password-link:hover {
+  text-decoration: underline;
+}

@@ -21,16 +21,16 @@ type Mutation struct {
 }
 
 type Profile struct {
-	Username    string  `json:"username"`
-    FullName    string  `json:"fullName"`
-    Age         int32   `json:"age"`
-    Bio         *string `json:"bio"`
-    Location    *string `json:"location"`
-    Interests   *string `json:"interests"`
-    PhoneNumber *string `json:"phoneNumber"`
-    Gender      *string `json:"gender"`
-    Email       string  `json:"email"`
-    Birthdate   *string `json:"birthdate"`
+	Username string `json:"username"`
+	FullName    string  `json:"fullName"`
+	Age         int32   `json:"age"`
+	Bio         *string `json:"bio,omitempty"`
+	Location    *string `json:"location,omitempty"`
+	Interests   *string `json:"interests,omitempty"`
+	PhoneNumber *string `json:"phoneNumber,omitempty"`
+	Gender      *string `json:"gender,omitempty"`
+	Email       string  `json:"email"`
+	Birthdate   *string `json:"birthdate,omitempty"`
 }
 
 type Query struct {
@@ -46,6 +46,11 @@ type RegisterInput struct {
 type RegisterResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
+}
+
+type ResetPasswordResponse struct {
+	Success bool    `json:"success"`
+	Message *string `json:"message,omitempty"`
 }
 
 type Subscription struct {

@@ -7,6 +7,12 @@ type Mutation {
 
   # Update the profile of a student
   updateProfile(input: UpdateProfileInput!): Profile!
+
+  # Delete a user's profile
+  deleteProfile(username: String!): Boolean!
+
+  # Reset a user's password
+  resetPassword(username: String!, newPassword: String!): ResetPasswordResponse!
 }
 
 type Subscription {
@@ -70,4 +76,9 @@ type LoginResponse {
 type LoginEvent {
   username: String!
   message: String!
+}
+
+type ResetPasswordResponse {
+  success: Boolean!
+  message: String
 }

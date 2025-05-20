@@ -33,3 +33,10 @@ export const UPDATE_PROFILE = gql`
     }
   }
 `;
+
+// Mutation: Delete Profile
+export const DELETE_PROFILE = gql`
+  mutation DeleteProfile($username: String!) {
+    deleteProfile(username: $username)
+  }
+`;

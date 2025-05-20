@@ -11,10 +11,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"student-service/graph/model"
 	"sync"
-	"time"
-
-	"student-service/graph/model" // Replace with the actual path to your model package
 )
 
 // Mutation: Register a new user
@@ -118,6 +116,70 @@ func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.Update
 	profileSubscribers.Unlock()
 
 	return &profile, nil
+}
+
+// Mutation: Delete a student's profile
+func (r *mutationResolver) DeleteProfile(ctx context.Context, username string) (bool, error) {
+	query := `
+        DELETE FROM students
+        WHERE username = $1
+    `
+
+	_, err := r.DB.ExecContext(ctx, query, username)
+	if err != nil {
+		log.Printf("Error deleting profile for username %s: %v", username, err)
+		return false, err
+	}
+
+	return true, nil
+}
+
+// Mutation: Reset a student's password
+func (r *mutationResolver) ResetPassword(ctx context.Context, username string, newPassword string) (*model.ResetPasswordResponse, error) {
+	query := `
+        UPDATE students
+        SET password = $1
+        WHERE username = $2
+    `
+
+	// Hash the new password
+	hashedPassword := hashPassword(newPassword)
+
+	// Execute the query
+	result, err := r.DB.ExecContext(ctx, query, hashedPassword, username)
+	if err != nil {
+		log.Printf("Error resetting password for username %s: %v", username, err)
+		return &model.ResetPasswordResponse{
+			Success: false,
+			Message: ptr("Failed to reset password"),
+		}, nil
+	}
+
+	// Check if any rows were affected
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Error checking rows affected for username %s: %v", username, err)
+		return &model.ResetPasswordResponse{
+			Success: false,
+			Message: ptr("Failed to reset password"),
+		}, nil
+	}
+
+	log.Printf("Rows affected for username %s: %d", username, rowsAffected)
+
+	if rowsAffected == 0 {
+		log.Printf("No user found with username: %s", username)
+		return &model.ResetPasswordResponse{
+			Success: false,
+			Message: ptr("Username does not exist"),
+		}, nil
+	}
+
+	log.Printf("Password reset successfully for username: %s", username)
+	return &model.ResetPasswordResponse{
+		Success: true,
+		Message: ptr("Password reset successfully"),
+	}, nil
 }
 
 // Query: Fetch the profile of a student by username
@@ -246,21 +308,7 @@ func hashPassword(password string) string {
 	hash := sha256.Sum256([]byte(password))
 	return hex.EncodeToString(hash[:])
 }
-func calculateAge(birthdate *string) int {
-	if birthdate == nil {
-		return 0
-	}
 
-	parsedBirthdate, err := time.Parse("2006-01-02", *birthdate)
-	if err != nil {
-		return 0
-	}
-
-	now := time.Now()
-	age := now.Year() - parsedBirthdate.Year()
-	if now.YearDay() < parsedBirthdate.YearDay() {
-		age--
-	}
-
-	return age
+func ptr(s string) *string {
+	return &s
 }
