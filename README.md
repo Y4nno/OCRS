@@ -1,6 +1,6 @@
-# Multi-Service E-Learning Platform – Final Project
+# LionHeart – Online Course Registration Service (Final Project)
 
-A modular, service-oriented e-learning system built with Go, PostgreSQL, GraphQL, and React. The platform is designed to handle student enrollments, course management, payment processing, and registration tracking through independent microservices.  
+An OCRS built with Go, PostgreSQL, GraphQL, and React. The platform is designed to handle student enrollments, course management, payment processing, and registration tracking through independent microservices.  
 
 Project documentation found in Google Docs.
 
@@ -35,7 +35,7 @@ OCRS/
 
 ---
 #### 🧪 Running the Project locally
-💡 Note: make sure to create a folder before cloning, and that ActiveMQ is running.
+💡 Note: Make sure PostgreSQL (databases of the services exists) and ActiveMQ are running, and script-toFill.py is executed from the payment-service/python/ directory.
 ```
 cd student-service && go run server.go
 cd course-service && go run server.go
