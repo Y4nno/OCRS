@@ -1,7 +1,9 @@
-### Multi-Service E-Learning Platform – Final Project
+# Multi-Service E-Learning Platform – Final Project
 
-<p>A modular, service-oriented e-learning system built with Go, PostgreSQL, GraphQL, and React. <br/> The platform is designed to handle student enrollments, course management, payment processing, and registration tracking through independent microservices.<br/>
-Project documentation found in Google Docs.</p>
+A modular, service-oriented e-learning system built with Go, PostgreSQL, GraphQL, and React. The platform is designed to handle student enrollments, course management, payment processing, and registration tracking through independent microservices.  
+
+Project documentation found in Google Docs.
+
 ---
 #### 🧱 Project Structure
 ```
@@ -19,20 +21,17 @@ OCRS/
 ---
 #### 📡 Architecture Overview
 ##### Each service runs independently and communicates through:
-<p>
 - REST/GraphQL APIs
 - ActiveMQ (via STOMP) for asynchronous messaging (e.g., syncing enrollments, cart updates)
-</p>  
 ---
 #### 🛠️ Tech Stack
-<p>
-Go (Golang) – Backend language
-PostgreSQL – Relational database
-GraphQL + gqlgen – API layer (backend side)
-Apollo Client – Connects frontend to the API
-React + Bootstrap – Frontend framework
-ActiveMQ – Messaging broker for async comms
-</p>  
+- Go (Golang) – Backend language
+- PostgreSQL – Relational database
+- GraphQL + gqlgen – API layer (backend side)
+- Apollo Client – Connects frontend to the API
+- React + Bootstrap – Frontend framework
+- ActiveMQ – Messaging broker for async comms
+
 ---
 #### 🧪 Running the Project locally
 💡 Note: make sure to create a folder before cloning, and that ActiveMQ is running.
@@ -45,18 +44,11 @@ cd final-frontend && npm start
 ```
 ---
 #### 📎 Future Improvements
-<p>
 - Switch to Docker for easier orchestration
 - Implement centralized gateway API
 - Integrate real payment APIs (e.g., PayMongo or Stripe)
 - Add authentication and role-based access
 - Improve UI/UX consistency across services
-</p>
 ---
-💌 A Note From Us<br/>
-We’re just a bunch of broke IT students trying to survive. This project is built with love, late nights, and questionable code quality (that may potentially fail QA).<br/>It’s not perfect, but it’s ours. Please be kind. 🥲
-
-
-
-
-
+#### 💌 A Note From Us
+We’re just a bunch of broke IT students trying to survive. This project is built with love, late nights, and questionable code quality (that may potentially fail QA). It’s not perfect, but it’s ours. Please be kind. 🥲
