@@ -30,6 +30,7 @@ OCRS/
 - GraphQL + gqlgen – API layer (backend side)
 - Apollo Client – Connects frontend to the API
 - React + Bootstrap – Frontend framework
+- Python - Database/Message queues automation for testing
 - ActiveMQ – Messaging broker for async comms
 
 ---
