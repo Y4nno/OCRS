@@ -1,0 +1,64 @@
+# Schema: schema.graphqls
+
+scalar Time
+
+enum CourseStatus {
+  AVAILABLE
+  UNAVAILABLE
+  ENLISTED
+}
+
+enum DifficultyLevel {
+  INTRODUCTION
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+type Course {
+  id: ID!
+  name: String!
+  price: Float!
+  duration: String!
+  description: String!
+  status: CourseStatus!
+  difficulty: DifficultyLevel!
+  instructor: String!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+input CourseInput {
+  name: String!
+  price: Float!
+  duration: String!
+  description: String!
+  status: CourseStatus!
+  difficulty: DifficultyLevel!
+  instructor: String!
+}
+
+type Query {
+  # Course queries
+  courses: [Course!]!
+  course(courseId: ID!): Course
+}
+
+type Subscription {
+  courseCreated: Course!
+  courseUpdated: Course!
+  courseDeletedByName: Boolean!
+}
+
+type Mutation {
+  # Course mutations
+  createCourse(input: CourseInput!): Course!
+  updateCourse(id: ID!, input: CourseInput!): Course!
+  deleteCourseByName(name: String!): Boolean!
+}
