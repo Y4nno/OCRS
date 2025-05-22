@@ -2,25 +2,70 @@
 
 package model
 
+type LoginEvent struct {
+	Username string `json:"username"`
+	Message  string `json:"message"`
+}
+
+type LoginInput struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type LoginResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}
+
 type Mutation struct {
 }
 
-type NewTodo struct {
-	Text   string `json:"text"`
-	UserID string `json:"userId"`
+type Profile struct {
+	FullName    string  `json:"fullName"`
+	Age         int32   `json:"age"`
+	StudentID   string  `json:"studentId"`
+	Username    string  `json:"username"`
+	Bio         *string `json:"bio,omitempty"`
+	Location    *string `json:"location,omitempty"`
+	Interests   *string `json:"interests,omitempty"`
+	PhoneNumber *string `json:"phoneNumber,omitempty"`
+	Gender      *string `json:"gender,omitempty"`
+	Email       string  `json:"email"`
+	Birthdate   *string `json:"birthdate,omitempty"`
 }
 
 type Query struct {
 }
 
-type Todo struct {
-	ID   string `json:"id"`
-	Text string `json:"text"`
-	Done bool   `json:"done"`
-	User *User  `json:"user"`
+type RegisterInput struct {
+	FullName string `json:"fullName"`
+	Email    string `json:"email"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
-type User struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+type RegisterResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}
+
+type ResetPasswordResponse struct {
+	Success bool    `json:"success"`
+	Message *string `json:"message,omitempty"`
+}
+
+type Subscription struct {
+}
+
+type UpdateProfileInput struct {
+	CurrentUsername string  `json:"currentUsername"`
+	NewUsername     *string `json:"newUsername,omitempty"`
+	FullName        *string `json:"fullName,omitempty"`
+	Birthdate       *string `json:"birthdate,omitempty"`
+	Bio             *string `json:"bio,omitempty"`
+	Location        *string `json:"location,omitempty"`
+	Interests       *string `json:"interests,omitempty"`
+	PhoneNumber     *string `json:"phoneNumber,omitempty"`
+	Gender          *string `json:"gender,omitempty"`
+	Email           *string `json:"email,omitempty"`
 }

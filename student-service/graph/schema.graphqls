@@ -1,28 +1,86 @@
-# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
+type Mutation {
+  # Register a new user
+  register(input: RegisterInput!): RegisterResponse!
 
-type Todo {
-  id: ID!
-  text: String!
-  done: Boolean!
-  user: User!
+  # Login a user
+  login(input: LoginInput!): LoginResponse!
+
+  # Update the profile of a student
+  updateProfile(input: UpdateProfileInput!): Profile!
+
+  # Delete a user's profile
+  deleteProfile(username: String!): Boolean!
+
+  # Reset a user's password
+  resetPassword(username: String!, newPassword: String!): ResetPasswordResponse!
 }
 
-type User {
-  id: ID!
-  name: String!
+type Subscription {
+  # Subscription for user login events
+  profileUpdated(username: String!): Profile
+  userLoggedIn: LoginEvent!
 }
 
 type Query {
-  todos: [Todo!]!
+  # Fetch the profile of a student by username
+  getProfile(username: String!): Profile!
 }
 
-input NewTodo {
-  text: String!
-  userId: String!
+type Profile {
+  fullName: String!
+  age: Int! # Add age as a calculated field
+  studentId: String!
+  username: String!
+  bio: String
+  location: String
+  interests: String
+  phoneNumber: String
+  gender: String
+  email: String!
+  birthdate: String # Add birthdate field
 }
 
-type Mutation {
-  createTodo(input: NewTodo!): Todo!
+input RegisterInput {
+  fullName: String!
+  email: String!
+  username: String!
+  password: String!
+}
+
+input LoginInput {
+  username: String!
+  password: String!
+}
+
+input UpdateProfileInput {
+  currentUsername: String! # The current username to identify the user
+  newUsername: String       # The new username (optional)
+  fullName: String
+  birthdate: String
+  bio: String
+  location: String
+  interests: String
+  phoneNumber: String
+  gender: String
+  email: String
+}
+
+type RegisterResponse {
+  success: Boolean!
+  message: String!
+}
+
+type LoginResponse {
+  success: Boolean!
+  message: String!
+}
+
+type LoginEvent {
+  username: String!
+  message: String!
+}
+
+type ResetPasswordResponse {
+  success: Boolean!
+  message: String
 }

@@ -1,0 +1,126 @@
+/* Hero Section */
+.hero-section {
+  background-color: #7B3538; /* Dark red background */
+  color: white;
+  text-align: center;
+  padding: 50px 20px;
+  margin: 0; /* Remove any margin */
+  width: 100vw; /* Full width of the viewport */
+  box-sizing: border-box; /* Include padding in width calculation */
+}
+
+.course-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin: 0;
+  line-height: 1.4; /* Adjust line height for better spacing */
+}
+
+/* Course Details Section */
+.course-details {
+  display: flex; /* Use flexbox for horizontal alignment */
+  justify-content: space-around; /* Space out the details evenly */
+  align-items: center; /* Align items vertically */
+  margin: 20px auto; /* Add spacing above and below */
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  max-width: 800px; /* Adjust width for landscape layout */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.course-details ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.course-details li {
+  font-size: 1rem;
+  margin: 10px 0; /* Add spacing between list items */
+  line-height: 1.6; /* Adjust line height for better readability */
+  text-align: left;
+}
+
+/* Course Description Section */
+.course-description {
+  margin: 20px auto;
+  padding: 20px;
+  background: #f9f9f9;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  max-width: 800px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.course-description h2 {
+  font-size: 1.8rem;
+  margin-bottom: 15px;
+  line-height: 1.4; /* Adjust line height for better spacing */
+}
+
+.course-description p {
+  font-size: 1rem;
+  line-height: 1.8; /* Increase line height for better readability */
+  margin: 10px 0; /* Add spacing between paragraphs */
+}
+
+/* Course Materials Section */
+.course-materials {
+  margin: 20px auto;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  max-width: 800px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.course-materials h2 {
+  font-size: 1.8rem;
+  margin-bottom: 15px;
+  line-height: 1.4; /* Adjust line height for better spacing */
+}
+
+.course-materials ul {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 10px 0; /* Add spacing above and below the list */
+}
+
+.course-materials li {
+  font-size: 1rem;
+  margin: 10px 0; /* Add spacing between list items */
+  line-height: 1.6; /* Adjust line height for better readability */
+}
+
+/* Global Reset */
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: Arial, sans-serif; /* Ensure consistent font */
+  line-height: 1.6; /* Set a global line height */
+}
+
+button.btn {
+  background-color: #7B3538;
+  border-style: none;
+  color: #FBFCF5;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 2px 5px;
+}
+
+button.btn.btn-primary {
+  background-color: #7B3538 !important;
+}
+
+button.btn:hover {
+  background-color: #5A2224;
+  color: #FBFCF5;
+}
+
+.btn:disabled {
+  border-color: #fbfcf500 !important;
+}

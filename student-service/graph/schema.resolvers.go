@@ -6,18 +6,303 @@ package graph
 
 import (
 	"context"
+	"crypto/sha256"
+	"database/sql"
+	"encoding/hex"
 	"fmt"
+	"log"
 	"student-service/graph/model"
+	"sync"
+	//"time"
 )
 
-// CreateTodo is the resolver for the createTodo field.
-func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: CreateTodo - createTodo"))
+var loginSubscribers = struct {
+	sync.Mutex
+	subscribers []chan *model.LoginEvent
+}{}
+var profileSubscribers = struct {
+	sync.Mutex
+	subscribers map[string][]chan *model.Profile
+}{
+	subscribers: make(map[string][]chan *model.Profile),
 }
 
-// Todos is the resolver for the todos field.
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: Todos - todos"))
+func hashPassword(password string) string {
+	hash := sha256.Sum256([]byte(password))
+	return hex.EncodeToString(hash[:])
+}
+func ptr(s string) *string {
+	return &s
+}
+
+// Mutation: Register a new user
+func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInput) (*model.RegisterResponse, error) {
+	var exists bool
+	var studentId string
+	err := r.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM students WHERE username = $1 OR email = $2)", input.Username, input.Email).Scan(&exists)
+	if err != nil {
+		log.Printf("Error checking student existence: %v", err)
+		return &model.RegisterResponse{Success: false, Message: "Internal server error"}, nil
+	}
+	if exists {
+		return &model.RegisterResponse{Success: false, Message: "Username or email already exists"}, nil
+	}
+
+	// Generate a unique studentId using UUID to avoid duplicates
+	uuidRow := r.DB.QueryRowContext(ctx, "SELECT gen_random_uuid()")
+	var uuid string
+	if err := uuidRow.Scan(&uuid); err != nil {
+		log.Printf("Error generating UUID: %v", err)
+		return &model.RegisterResponse{Success: false, Message: "Internal server error"}, nil
+	}
+	studentId = fmt.Sprintf("student-%s", uuid[:4])
+
+	hashedPassword := hashPassword(input.Password)
+	_, err = r.DB.ExecContext(ctx, "INSERT INTO students (fullname, email, username, hashed_password, student_id) VALUES ($1, $2, $3, $4, $5)", input.FullName, input.Email, input.Username, hashedPassword, studentId)
+	if err != nil {
+		log.Printf("Error inserting student: %v", err)
+		return &model.RegisterResponse{Success: false, Message: "Failed to create account"}, nil
+	}
+
+	return &model.RegisterResponse{Success: true, Message: "Account created successfully"}, nil
+}
+
+// Mutation: Login a user
+func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*model.LoginResponse, error) {
+	var hashedPassword string
+	err := r.DB.QueryRowContext(ctx, "SELECT hashed_password FROM students WHERE username = $1", input.Username).Scan(&hashedPassword)
+	if err != nil {
+		log.Printf("Invalid username: %s", input.Username)
+		return &model.LoginResponse{Success: false, Message: "Incorrect username or password"}, nil
+	}
+
+	if hashedPassword != hashPassword(input.Password) {
+		log.Printf("Invalid password for username: %s", input.Username)
+		return &model.LoginResponse{Success: false, Message: "Incorrect username or password"}, nil
+	}
+
+	loginSubscribers.Lock()
+	for _, subscriber := range loginSubscribers.subscribers {
+		subscriber <- &model.LoginEvent{
+			Username: input.Username,
+			Message:  "User logged in",
+		}
+	}
+	loginSubscribers.Unlock()
+
+	return &model.LoginResponse{Success: true, Message: "Login successful!"}, nil
+}
+
+// Mutation: Update the profile of a student
+func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*model.Profile, error) {
+	query := `
+        UPDATE students
+        SET username = COALESCE($1, username),
+            fullname = COALESCE($2, fullname),
+            bio = COALESCE($3, bio),
+            location = COALESCE($4, location),
+            interests = COALESCE($5, interests),
+            phone_number = COALESCE($6, phone_number),
+            gender = COALESCE($7, gender),
+            email = COALESCE($8, email),
+            birthdate = COALESCE($9, birthdate)
+        WHERE username = $10
+        RETURNING username, fullname, bio, location, interests, phone_number, gender, email, birthdate
+    `
+
+	var profile model.Profile
+	err := r.DB.QueryRowContext(ctx, query,
+		input.NewUsername, // New username
+		input.FullName,
+		input.Bio,
+		input.Location,
+		input.Interests,
+		input.PhoneNumber,
+		input.Gender,
+		input.Email,
+		input.Birthdate,
+		input.CurrentUsername, // Current username
+	).Scan(
+		&profile.Username,
+		&profile.FullName,
+		&profile.Bio,
+		&profile.Location,
+		&profile.Interests,
+		&profile.PhoneNumber,
+		&profile.Gender,
+		&profile.Email,
+		&profile.Birthdate,
+	)
+	if err != nil {
+		log.Printf("Error updating profile: %v", err)
+		return nil, err
+	}
+
+	// Notify subscribers about the profile update
+	profileSubscribers.Lock()
+	for _, subscriber := range profileSubscribers.subscribers[input.CurrentUsername] {
+		subscriber <- &profile
+	}
+	profileSubscribers.Unlock()
+
+	return &profile, nil
+}
+
+// Mutation: Delete a student's profile
+func (r *mutationResolver) DeleteProfile(ctx context.Context, username string) (bool, error) {
+	query := `
+        DELETE FROM students
+        WHERE username = $1
+    `
+
+	_, err := r.DB.ExecContext(ctx, query, username)
+	if err != nil {
+		log.Printf("Error deleting profile for username %s: %v", username, err)
+		return false, err
+	}
+
+	return true, nil
+}
+
+// Mutation: Reset a student's password
+func (r *mutationResolver) ResetPassword(ctx context.Context, username string, newPassword string) (*model.ResetPasswordResponse, error) {
+	query := `
+        UPDATE students
+        SET hashed_password = $1
+        WHERE username = $2
+    `
+
+	// Hash the new password
+	hashedPassword := hashPassword(newPassword)
+
+	// Execute the query
+	result, err := r.DB.ExecContext(ctx, query, hashedPassword, username)
+	if err != nil {
+		log.Printf("Error resetting password for username %s: %v", username, err)
+		return &model.ResetPasswordResponse{
+			Success: false,
+			Message: ptr("Failed to reset password"),
+		}, nil
+	}
+
+	// Check if any rows were affected
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Error checking rows affected for username %s: %v", username, err)
+		return &model.ResetPasswordResponse{
+			Success: false,
+			Message: ptr("Failed to reset password"),
+		}, nil
+	}
+
+	log.Printf("Rows affected for username %s: %d", username, rowsAffected)
+
+	if rowsAffected == 0 {
+		log.Printf("No user found with username: %s", username)
+		return &model.ResetPasswordResponse{
+			Success: false,
+			Message: ptr("Username does not exist"),
+		}, nil
+	}
+
+	log.Printf("Password reset successfully for username: %s", username)
+	return &model.ResetPasswordResponse{
+		Success: true,
+		Message: ptr("Password reset successfully"),
+	}, nil
+}
+
+// Query: Fetch the profile of a student by username
+func (r *queryResolver) GetProfile(ctx context.Context, username string) (*model.Profile, error) {
+	query := `
+        SELECT username, fullname, student_id, bio, location, interests, phone_number, gender, email, birthdate
+        FROM students
+        WHERE username = $1
+    `
+
+	var profile model.Profile
+	var birthdate sql.NullString // Handle nullable birthdate
+
+	err := r.DB.QueryRowContext(ctx, query, username).Scan(
+		&profile.Username,
+		&profile.FullName,
+		&profile.StudentID, // <-- Add this line to scan student_id
+		&profile.Bio,
+		&profile.Location,
+		&profile.Interests,
+		&profile.PhoneNumber,
+		&profile.Gender,
+		&profile.Email,
+		&birthdate,
+	)
+	if err == sql.ErrNoRows {
+		log.Printf("No profile found for username: %s", username)
+		return nil, fmt.Errorf("no profile found for username: %s", username)
+	} else if err != nil {
+		log.Printf("Error fetching profile: %v", err)
+		return nil, err
+	}
+
+	// Handle nullable birthdate
+	if birthdate.Valid {
+		profile.Birthdate = &birthdate.String // Assign a pointer to the string value
+	} else {
+		profile.Birthdate = nil // Set to nil if null
+	}
+
+	return &profile, nil
+}
+
+// Subscription: Profile updated
+func (r *subscriptionResolver) ProfileUpdated(ctx context.Context, username string) (<-chan *model.Profile, error) {
+	ch := make(chan *model.Profile, 1)
+
+	profileSubscribers.Lock()
+	if _, exists := profileSubscribers.subscribers[username]; !exists {
+		profileSubscribers.subscribers[username] = []chan *model.Profile{}
+	}
+	profileSubscribers.subscribers[username] = append(profileSubscribers.subscribers[username], ch)
+	profileSubscribers.Unlock()
+
+	go func() {
+		<-ctx.Done()
+		profileSubscribers.Lock()
+		subscribers := profileSubscribers.subscribers[username]
+		for i, subscriber := range subscribers {
+			if subscriber == ch {
+				profileSubscribers.subscribers[username] = append(subscribers[:i], subscribers[i+1:]...)
+				break
+			}
+		}
+		profileSubscribers.Unlock()
+		close(ch)
+	}()
+
+	return ch, nil
+}
+
+// Subscription: User logged in
+func (r *subscriptionResolver) UserLoggedIn(ctx context.Context) (<-chan *model.LoginEvent, error) {
+	ch := make(chan *model.LoginEvent, 1)
+
+	loginSubscribers.Lock()
+	loginSubscribers.subscribers = append(loginSubscribers.subscribers, ch)
+	loginSubscribers.Unlock()
+
+	go func() {
+		<-ctx.Done()
+		loginSubscribers.Lock()
+		for i, subscriber := range loginSubscribers.subscribers {
+			if subscriber == ch {
+				loginSubscribers.subscribers = append(loginSubscribers.subscribers[:i], loginSubscribers.subscribers[i+1:]...)
+				break
+			}
+		}
+		loginSubscribers.Unlock()
+		close(ch)
+	}()
+
+	return ch, nil
 }
 
 // Mutation returns MutationResolver implementation.
@@ -26,5 +311,16 @@ func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+// Subscription returns SubscriptionResolver implementation.
+func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionResolver{r} }
+
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type subscriptionResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.

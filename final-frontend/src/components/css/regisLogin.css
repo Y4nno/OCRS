@@ -1,0 +1,133 @@
+.register-login-container {
+  display: flex;
+  height: 100vh;
+  font-family: 'Instrument Sans', Arial, sans-serif; /* Ensure Instrument Sans is loaded */
+  position: relative;
+}
+
+.left-panel {
+  flex: 1.2; /* Slightly larger than the right panel */
+  background-color: #7b3538;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: left;
+  position: relative; /* Ensure the h1 is positioned correctly */
+  z-index: 1; /* Bring the h1 to the front */
+}
+
+.left-panel h1 {
+  font-size: 115px; /* Set font size to 111px */
+  font-weight: bold; /* Set font weight to bold */
+  line-height: 1.3; /* Adjust line height for better spacing */
+  margin: 0;
+  color: #ffffff !important; /* Ensure the text color is white */
+}
+
+.left-panel .brand-name {
+  font-weight: bold;
+  color: black;
+}
+
+.right-panel {
+  flex: 0.8; /* Slightly smaller than the left panel */
+  background-color: #f9f9f9;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.tabs {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+}
+
+.tabs button {
+  flex: 1;
+  padding: 10px;
+  font-size: 1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.tabs button.active {
+  border-bottom: 2px solid #7b3538;
+  font-weight: bold;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form input {
+  margin-bottom: 15px;
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.password-field {
+  display: flex;
+  align-items: center;
+}
+
+.password-field input {
+  flex: 1;
+}
+
+.password-field .show-password {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  margin-left: 5px;
+}
+
+.terms {
+  font-size: 0.8rem;
+  margin-bottom: 20px;
+}
+
+.terms a {
+  color: #7b3538;
+  text-decoration: none;
+}
+
+.submit-btn {
+  background-color: #7b3538;
+  color: white;
+  padding: 10px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.submit-btn:hover {
+  background-color: #5a2628;
+}
+
+.forgot-password {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.forgot-password-link {
+  color: #5a2829; /* Match your theme color */
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.forgot-password-link:hover {
+  color: rgb(182, 104, 117);
+  text-decoration: underline;
+}

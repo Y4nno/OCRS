@@ -1,0 +1,95 @@
+// filepath: d:\USER\Documents\RZ - School Files\Github\OCRS\registration-service-v3\server.go
+
+package main
+
+import (
+	"database/sql"
+	"log"
+	"net/http"
+	"os"
+	"time"
+
+	_ "github.com/lib/pq"
+
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
+	"github.com/99designs/gqlgen/graphql/handler/lru"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/gorilla/websocket"
+	"github.com/rs/cors"
+	"github.com/vektah/gqlparser/v2/ast"
+	"registration.mod/registration-v3/graph"
+	"registration.mod/registration-v3/graph/model"
+	"registration.mod/registration-v3/mq"
+)
+
+const defaultPort = "8083"
+
+var db *sql.DB
+
+func main() {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = defaultPort
+	}
+
+	dsn := "postgres://postgres:admin@localhost:5432/registration-service?sslmode=disable"
+	var err error
+	db, err = sql.Open("postgres", dsn)
+	if err != nil {
+		log.Fatal("Failed to connect to database:", err)
+	}
+	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		log.Fatal("Database connection is not alive:", err)
+	}
+
+	log.Println("Connected to PostgreSQL successfully! 🎉")
+
+	corsHandler := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8083"},
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
+	})
+
+	resolver := graph.NewResolver(db)
+	go mq.StartEnrollmentConsumer(db, func(reg *model.Registration) {
+		resolver.BroadcastRegistration(reg)
+	})
+
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{
+		Resolvers: resolver, // Use the constructor here
+	}))
+
+	srv.AddTransport(transport.Websocket{
+		KeepAlivePingInterval: 10 * time.Second,
+		Upgrader: websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				// Allow requests from your frontend and GraphQL Playground
+				origin := r.Header.Get("Origin")
+				log.Println("Origin:", origin)
+				return origin == "http://localhost:3000" || origin == "http://localhost:8083"
+			},
+		},
+	})
+
+	srv.AddTransport(transport.Options{})
+	srv.AddTransport(transport.GET{})
+	srv.AddTransport(transport.POST{})
+
+	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
+
+	srv.Use(extension.Introspection{})
+	srv.Use(extension.AutomaticPersistedQuery{
+		Cache: lru.New[string](100),
+	})
+
+	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	http.Handle("/query", corsHandler.Handler(srv))
+
+	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
+}

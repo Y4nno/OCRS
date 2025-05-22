@@ -1,19 +1,21 @@
-module student-service
+module registration.mod/registration-v3
 
 go 1.24.0
 
 require (
-	github.com/99designs/gqlgen v0.17.70
+	github.com/99designs/gqlgen v0.17.73
+	github.com/go-stomp/stomp v2.1.4+incompatible
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/lib/pq v1.10.9
 	github.com/rs/cors v1.11.1
-	github.com/vektah/gqlparser/v2 v2.5.23
+	github.com/vektah/gqlparser/v2 v2.5.26
 )
 
 require (
 	github.com/agnivade/levenshtein v1.2.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/sosodev/duration v1.3.1 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
